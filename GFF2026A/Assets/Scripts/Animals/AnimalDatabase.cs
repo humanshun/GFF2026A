@@ -66,14 +66,20 @@ public class AnimalDatabase : ScriptableObject
     //　rngを渡せばシード固定の乱数を使える（オンライン同期向け）
     public AnimalData GetRandomByWeight(Func<AnimalData, bool> filter = null, System.Random rng = null)
     {
+        var candidates = new List<AnimalData>();
         int total = 0;
 
-        //合計重みを計算
+        //合計重みを計算しながら候補を収集
         foreach (var a in animals)
         {
             if (a == null) continue;
             if (filter != null && !filter(a)) continue;
-            total += Mathf.Max(0, a.SpawnWeight);
+
+            int w = Mathf.Max(0, a.SpawnWeight);
+            if (w <= 0) continue;
+
+            total += w;
+            candidates.Add(a);
         }
         if (total <= 0) return null;
 
@@ -81,11 +87,8 @@ public class AnimalDatabase : ScriptableObject
         int roll = rng == null ? UnityEngine.Random.Range(0, total) : rng.Next(0, total);
 
         //抽選に当たった動物を渡す
-        foreach (var a in animals)
+        foreach (var a in candidates)
         {
-            if (a == null) continue;
-            if (filter != null && !filter(a)) continue;
-
             int w = Mathf.Max(0, a.SpawnWeight);
             if (roll < w) return a;
             roll -= w;
