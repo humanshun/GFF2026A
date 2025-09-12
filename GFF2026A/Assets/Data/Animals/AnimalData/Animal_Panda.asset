@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: 0002
   displayName: "\u30D1\u30F3\u30C0"
-  icon: {fileID: 0}
+  icon: {fileID: -6649923933898440946, guid: 466dafded63390b40ae211e5893ac8ec, type: 3}
   prefab: {fileID: 4515878626337536649, guid: 3d537909f9ad333418d26132a7d3b94d, type: 3}
   mass: 1
   physMat: {fileID: 0}
