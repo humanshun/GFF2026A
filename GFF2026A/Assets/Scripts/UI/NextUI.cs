@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,22 +6,45 @@ public class NextUI : MonoBehaviour
     [SerializeField] private AnimalSpawner spawner;
     [SerializeField] private Image[] slots;
 
-    private void Update()
+    private void OnEnable()
     {
-        if (spawner.Decider is NextDecider nd)
+        TrySubscribe();
+        Refresh();
+    }
+
+    private void OnDisable()
+    {
+        TryUnsubscribe();
+    }
+
+    private void TrySubscribe()
+    {
+        if (spawner && spawner.Decider is NextDecider nd)
+            nd.QueueChanged += Refresh;
+    }
+
+    private void TryUnsubscribe()
+    {
+        if (spawner && spawner.Decider is NextDecider nd)
+            nd.QueueChanged -= Refresh;
+    }
+
+    private void Refresh()
+    {
+        if (!(spawner && spawner.Decider is NextDecider nd)) return;
+        var arr = nd.NextAnimalsList; // ← IReadOnlyList なのでインデックスOK
+
+        for (int i = 0; i < slots.Length; i++)
         {
-            var arr = new List<AnimalData>(nd.NextAnimals);
-            for (int i = 0; i < slots.Length; i++)
+            if (i < arr.Count && arr[i] != null && arr[i].Icon != null)
             {
-                if (i < arr.Count && arr[i] != null)
-                {
-                    slots[i].sprite = arr[i].Icon;
-                    slots[i].enabled = true;
-                }
-                else
-                {
-                    slots[i].enabled = false;
-                }
+                slots[i].sprite = arr[i].Icon;
+                slots[i].enabled = true;
+                slots[i].color = Color.white;
+            }
+            else
+            {
+                slots[i].enabled = false;
             }
         }
     }

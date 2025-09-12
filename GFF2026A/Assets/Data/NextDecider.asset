@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92cdd3c38a5be674fb92b79efdef6221, type: 3}
   m_Name: NextDecider
   m_EditorClassIdentifier: 
-  queueSize: 3
+  queueSize: 4
