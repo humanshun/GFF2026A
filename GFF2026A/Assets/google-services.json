@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "487118386482",
+    "project_id": "gff2026a-unity",
+    "storage_bucket": "gff2026a-unity.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:487118386482:android:5df20552528247944e132b",
+        "android_client_info": {
+          "package_name": "com.human_a_team.gff2026a"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-7l1TXpG_WQFcxjaQjd0KmPU9APtOpEo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
