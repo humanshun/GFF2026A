@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class AnimalSpawner : MonoBehaviour
 {
+    [SerializeField] private MonoBehaviour registryProvider; // IAnimalRegistryを提供するコンポーネント
+    private IAnimalRegistry _registry;
+    
     [Header("Refs")]
     [SerializeField] private AnimalDatabase database;
     [SerializeField] private SpawnDecider decider;
@@ -26,7 +29,24 @@ public class AnimalSpawner : MonoBehaviour
         if (!data || !data.Prefab) return null;
 
         var go = Instantiate(data.Prefab, pos, rot);
+
+        if (go.TryGetComponent(out AnimalPiece piece))
+        {
+            piece.Initialize(_registry); // DI注入
+        }
         return go;
+    }
+
+    private void Awake()
+    {
+        _registry = registryProvider as IAnimalRegistry;
+        if (_registry == null)
+        {
+            Debug.LogWarning("AnimalSpawner: IAnimalRegistryを提供するコンポーネントが設定されていません。");
+
+            // 最低限の保険（無ければシングルトン参照）
+            _registry = AnimalManager.Instance; // シングルトンにフォールバック
+        }
     }
 
     private void Start()

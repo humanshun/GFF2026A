@@ -937,6 +937,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4065987499015118909}
   - component: {fileID: 1476143421221543726}
+  - component: {fileID: 4937808689755197720}
   m_Layer: 0
   m_Name: Panda
   m_TagString: Untagged
@@ -988,6 +989,19 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &4937808689755197720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4515878626337536649}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad769700a666de4d9f9f78fc8b7595f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  manager: {fileID: 0}
 --- !u!1 &6503582161967633010
 GameObject:
   m_ObjectHideFlags: 0
