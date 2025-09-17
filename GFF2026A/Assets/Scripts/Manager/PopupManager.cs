@@ -1,34 +1,29 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class PopupManager : MonoBehaviour
 {
-    [System.Serializable]
-    public class PopupEntry
+    // PopupManagerのシングルトン
+    public static PopupManager Instance { get; private set; }
+
+    // Awakeでインスタンスを設定
+    private void Awake()
     {
-        public string Id;
-        public GameObject PopupObj;
+        // 自分自身をInstanceに登録
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
     }
 
-    [SerializeField] private List<PopupEntry> popups;
+    [SerializeField] private Canvas canvas;
 
-    public void Open(string id)
+    // IDでポップアップを開く
+    public void Open(GameObject popupPrefab)
     {
-        var entry = popups.Find(p => p.Id == id);
-        if (entry != null) entry.PopupObj.SetActive(true);
-    }
-
-    public void Close(string id)
-    {
-        var entry = popups.Find(p => p.Id == id);
-        if (entry != null) entry.PopupObj.SetActive(false);
-    }
-
-    public void Toggle(string id)
-    {
-        var entry = popups.Find(p => p.Id == id);
-        if (entry != null) entry.PopupObj.SetActive(!entry.PopupObj.activeSelf);
+        Instantiate(popupPrefab, canvas.transform);
     }
 }
