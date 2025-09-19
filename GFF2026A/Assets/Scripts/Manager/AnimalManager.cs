@@ -12,6 +12,8 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
     [SerializeField] private float destroyInterval = 0.02f;
 
     public static AnimalManager Instance { get; private set; }
+
+    public IReadOnlyList<GameObject> Registered => gameObjects;
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
