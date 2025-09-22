@@ -3,12 +3,14 @@ using Firebase;
 using Firebase.Auth;
 using Firebase.Extensions;
 using Firebase.Firestore;
+using UnityEditor.U2D.Aseprite;
 
 public class Auth : MonoBehaviour
 {
     public static Auth instance;
     private FirebaseAuth auth;
     private FirebaseFirestore firestore;
+    public FirebaseUser user { get; private set; }
     void Start()
     {
         if (instance == null)
@@ -29,8 +31,6 @@ public class Auth : MonoBehaviour
                 FirebaseApp app = FirebaseApp.DefaultInstance;
                 firestore = FirebaseFirestore.DefaultInstance;
                 auth = FirebaseAuth.DefaultInstance;
-
-                // CreateUser("test@gmail.com", "testtest");
             }
             else
             {
@@ -50,7 +50,6 @@ public class Auth : MonoBehaviour
         }
 
         CreateUser(email, password, callback);
-        // TODO: ホームシーンに飛ぶ
     }
 
     public void LoginFirebase(string email, string password, System.Action<bool> callback)
@@ -59,10 +58,9 @@ public class Auth : MonoBehaviour
         {
             if (task.IsCompleted && !task.IsFaulted && !task.IsCanceled)
             {
-                FirebaseUser user = task.Result.User;
+                user = task.Result.User;
                 Debug.Log($"ログイン成功: {user.Email} ({user.UserId})");
                 Debug.Log("ユーザーUID" + user.UserId);
-                // TODO: ホームシーンに飛ぶ
                 callback(true);
             }
             else
@@ -79,13 +77,42 @@ public class Auth : MonoBehaviour
         {
             if (task.IsCompleted)
             {
-                FirebaseUser newUser = task.Result.User;
+                user = task.Result.User;
                 callback(true);
             }
             else
             {
                 Debug.Log("接続できなかった");
                 callback(false);
+            }
+        });
+    }
+
+    public void UserInfoRegister(string username, System.Action<bool> callback)
+    {
+        if (string.IsNullOrEmpty(username))
+        {
+            Debug.Log("名前が入力されていません");
+            return;
+        }
+
+        string uid = user.UserId;
+        UserData userData = new UserData
+        {
+            username = username,
+            bestScore = 0,
+            timestamp = (int)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds
+        };
+
+        firestore.Collection("userInfo").Document(uid).SetAsync(userData).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted)
+            {
+                Debug.Log("ユーザーデータの登録に成功しました");
+            }
+            else
+            {
+                Debug.Log("ユーザーデータの登録に失敗しました");
             }
         });
     }

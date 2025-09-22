@@ -5,21 +5,26 @@ using System;
 
 public class LoginUI : MonoBehaviour
 {
+    public GameObject UserRegisterPanel;
     public TMP_InputField emailInput;
     public TMP_InputField passwordInput;
 
     public TMP_InputField emailLoginInput;
     public TMP_InputField passwordLoginInput;
 
+    public TMP_InputField userNameInput;
+
     public GameObject loginErrorText;
 
     public Button registarButton;
     public Button loginButton;
+    public Button submitButton;
 
     void Start()
     {
         registarButton.onClick.AddListener(OnRegisterButton);
         loginButton.onClick.AddListener(OnLoginButton);
+        submitButton.onClick.AddListener(OnSubmitUserData);
     }
 
     public void OnRegisterButton()
@@ -28,7 +33,7 @@ public class LoginUI : MonoBehaviour
         {
             if (success)
             {
-                //ホームシーンに飛ぶ
+                UserRegisterPanel.SetActive(true);
             }
             else
             {
@@ -44,12 +49,17 @@ public class LoginUI : MonoBehaviour
         {
             if (success)
             {
-                //ホームシーンに飛ぶ
+                UserRegisterPanel.SetActive(true);
             }
             else
             {
                 loginErrorText.SetActive(true);
             }
         });
+    }
+
+    public void OnSubmitUserData()
+    {
+        Auth.instance.UserInfoRegister(userNameInput.text, success =>{});
     }
 }
