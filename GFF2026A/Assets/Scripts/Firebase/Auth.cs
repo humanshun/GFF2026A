@@ -3,29 +3,24 @@ using Firebase;
 using Firebase.Auth;
 using Firebase.Extensions;
 using Firebase.Firestore;
-using TMPro;
-using UnityEngine.UI;
 
-public class Login : MonoBehaviour
+public class Auth : MonoBehaviour
 {
+    public static Auth instance;
     private FirebaseAuth auth;
     private FirebaseFirestore firestore;
-
-    public TMP_InputField emailInput;
-    public TMP_InputField passwordInput;
-
-    public TMP_InputField emailLoginInput;
-    public TMP_InputField passwordLoginInput;
-
-    public GameObject loginErrorText;
-
-    public Button registarButton;
-    public Button loginButton;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        registarButton.onClick.AddListener(OnRegisterButton);
-        loginButton.onClick.AddListener(OnLoginButton);
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+        else
+        {
+            Destroy(this.gameObject);
+        }
+
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted)
@@ -42,14 +37,10 @@ public class Login : MonoBehaviour
                 Debug.Log("接続できなかった");
             }
         });
-
     }
 
-    public void OnRegisterButton()
+    public void Register(string email, string password, System.Action<bool> callback)
     {
-        string email = emailInput.text;
-        string password = passwordInput.text;
-
         // ちゃんとメールアドレスになっているかとか、入力されているかとか
         // パスワードは何文字以上ですよとか、本当はもっと厳密にチェック
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
@@ -58,15 +49,12 @@ public class Login : MonoBehaviour
             return;
         }
 
-        CreateUser(email, password);
+        CreateUser(email, password, callback);
         // TODO: ホームシーンに飛ぶ
     }
 
-    public void OnLoginButton()
+    public void LoginFirebase(string email, string password, System.Action<bool> callback)
     {
-        string email = emailLoginInput.text;
-        string password = passwordLoginInput.text;
-
         auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted && !task.IsFaulted && !task.IsCanceled)
@@ -75,26 +63,29 @@ public class Login : MonoBehaviour
                 Debug.Log($"ログイン成功: {user.Email} ({user.UserId})");
                 Debug.Log("ユーザーUID" + user.UserId);
                 // TODO: ホームシーンに飛ぶ
+                callback(true);
             }
             else
             {
                 Debug.Log("接続できなかった");
-                loginErrorText.SetActive(true);
+                callback(false);
             }
         });
     }
 
-    void CreateUser(string email, string password)
+    void CreateUser(string email, string password, System.Action<bool> callback)
     {
         auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted)
             {
                 FirebaseUser newUser = task.Result.User;
+                callback(true);
             }
             else
             {
                 Debug.Log("接続できなかった");
+                callback(false);
             }
         });
     }
