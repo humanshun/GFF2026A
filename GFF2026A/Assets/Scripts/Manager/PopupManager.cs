@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PopupManager : MonoBehaviour
 {
     // PopupManagerのシングルトン
     public static PopupManager Instance { get; private set; }
+    [SerializeField] private Canvas canvas;
 
     // Awakeでインスタンスを設定
     private void Awake()
@@ -18,8 +17,6 @@ public class PopupManager : MonoBehaviour
         }
         Instance = this;
     }
-
-    [SerializeField] private Canvas canvas;
 
     // IDでポップアップを開く
     public void Open(GameObject popupPrefab)
