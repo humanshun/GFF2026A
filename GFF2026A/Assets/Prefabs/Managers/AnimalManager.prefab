@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &626627259905107285
+--- !u!1 &1790891520443963675
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,22 +8,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6146864951108847712}
-  - component: {fileID: 2080225087718342065}
+  - component: {fileID: 549124726325399367}
+  - component: {fileID: 3938087884061801310}
   m_Layer: 0
-  m_Name: AnimalSpawner
+  m_Name: AnimalManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6146864951108847712
+--- !u!4 &549124726325399367
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 626627259905107285}
+  m_GameObject: {fileID: 1790891520443963675}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.10826415, y: -0.16067146, z: -0.0036561592}
@@ -32,20 +32,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2080225087718342065
+--- !u!114 &3938087884061801310
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 626627259905107285}
+  m_GameObject: {fileID: 1790891520443963675}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3517dd90fa70a164aae0a41f9914a4b4, type: 3}
+  m_Script: {fileID: 11500000, guid: cea2589c60d322c46b5cb464d081f73b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  registryProvider: {fileID: 0}
-  database: {fileID: 11400000, guid: 0f14e22197f65c24c97568b28f1759cd, type: 2}
-  decider: {fileID: 11400000, guid: c3b4caa56e228184cbb44ae8a636d808, type: 2}
-  spawnPoint: {fileID: 0}
-  autoSpawnNextOnSecondSpace: 1
+  bodies: []
+  angularWeight: 0.01
+  aggregateType: 1
+  settleThreshold: 0.25
+  requiredStableDuration: 0.75
+  sampleInterval: 0.05
+  destroyInterval: 0.02
