@@ -9,18 +9,17 @@ public class UIDeme : MonoBehaviour
     public TextMeshProUGUI output;
     public TMP_InputField userName;
 
-    private string allowedPattern = @"^[ぁ-んァ-ン一-龥a-zA-Z0-9]+$";
+    private string allowedPattern = @"^[ぁ-んァ-ン\p{IsCJKUnifiedIdeographs} a-zA-Z0-9]+$";
     public void ButtonDemo()
     {
-        string Input = userName.text;
-        Input = Input.Trim();
-        Input = Input.Trim();                      // 前後のスペース削除
-        Input = Input.Replace(" ", "");            // 半角スペース削除
-        Input = Input.Replace("　", "");           // 全角スペース削除
+        string input = userName.text;
+        input = input.Trim();                      // 前後のスペース削除
+        input = input.Replace(" ", "");            // 半角スペース削除
+        input = input.Replace("　", "");           // 全角スペース削除
 
-        if (Regex.IsMatch(Input,allowedPattern))
+        if (Regex.IsMatch(input,allowedPattern))
         {
-            output.text = Input;
+            output.text = input;
         }
         else
         {
