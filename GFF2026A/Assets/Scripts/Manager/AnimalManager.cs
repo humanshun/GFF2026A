@@ -14,6 +14,7 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
     public static AnimalManager Instance { get; private set; }
 
     public IReadOnlyList<GameObject> Registered => gameObjects;
+    public event Action<int> OnScoreRecalculated; // スコア集計完了時に通知
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -70,5 +71,28 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
             yield return new WaitForSeconds(destroyInterval);
         }
         gameObjects.Clear();
+    }
+
+    // ===== 全動物のスコア集計 =====
+    public int CalculateTotalScore()
+    {
+        int total = 0;
+        foreach (var go in gameObjects)
+        {
+            if (!go) continue;
+            var providers = go.GetComponentsInChildren<AnimalScoreProvider>();
+            foreach (var p in providers)
+            {
+                total += p.GetScore();
+            }
+        }
+        return total;
+    }
+
+    public int RecalculateAndNotify()
+    {
+        int total = CalculateTotalScore();
+        OnScoreRecalculated?.Invoke(total);
+        return total;
     }
 }
