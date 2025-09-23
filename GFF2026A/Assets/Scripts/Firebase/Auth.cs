@@ -4,6 +4,7 @@ using Firebase.Auth;
 using Firebase.Extensions;
 using Firebase.Firestore;
 using UnityEditor.U2D.Aseprite;
+using UnityEngine.SceneManagement;
 
 public class Auth : MonoBehaviour
 {
@@ -11,6 +12,8 @@ public class Auth : MonoBehaviour
     private FirebaseAuth auth;
     private FirebaseFirestore firestore;
     public FirebaseUser user { get; private set; }
+    public UserData userData { get; private set; }
+
     void Start()
     {
         if (instance == null)
@@ -97,7 +100,7 @@ public class Auth : MonoBehaviour
         }
 
         string uid = user.UserId;
-        UserData userData = new UserData
+        userData = new UserData
         {
             username = username,
             bestScore = 0,
@@ -109,6 +112,7 @@ public class Auth : MonoBehaviour
             if (task.IsCompleted)
             {
                 Debug.Log("ユーザーデータの登録に成功しました");
+                SceneManager.LoadScene("InGame");
             }
             else
             {
