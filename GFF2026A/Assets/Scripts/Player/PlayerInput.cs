@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.EventSystems; // UI上クリック無視に使う（任意）
 
-[RequireComponent(typeof(HoldController))]
-public class HoldingInput : MonoBehaviour
+[RequireComponent(typeof(PlayerController))]
+public class PlayerInput : MonoBehaviour
 {
     [Header("Mouse Follow")]
     [SerializeField] bool followMouseX = true;
@@ -13,12 +13,16 @@ public class HoldingInput : MonoBehaviour
     [Header("Rotation (Mouse Wheel)")]
     [SerializeField] float rotateStep = 15f;
 
-    HoldController _holder;
+    [Header("Hold / Swap Input")]
+    [SerializeField] bool useRightClickForHold = true;        //右クリックでもホールド・交換
+    [SerializeField] KeyCode holdKey = KeyCode.LeftShift;     //キーでもホールド・交換
+    [SerializeField] bool ignoreHoldWhenPointerOverUI = true; //UI上クリックは無視
+    PlayerController _holder;
     Camera _cam;
 
     void Awake()
     {
-        _holder = GetComponent<HoldController>();
+        _holder = GetComponent<PlayerController>();
         _cam = Camera.main;
     }
 
@@ -56,6 +60,16 @@ public class HoldingInput : MonoBehaviour
             {
                 _holder.HandleDropOrPrepare();
             }
+        }
+                // === 4) 右クリック or キーでホールド/交換 ===
+        if (useRightClickForHold && Input.GetMouseButtonDown(1))
+        {
+            if (!ignoreHoldWhenPointerOverUI || !IsPointerOverUI())
+                _holder.HandleHoldOrSwap();
+        }
+        if (Input.GetKeyDown(holdKey))
+        {
+            _holder.HandleHoldOrSwap();
         }
     }
 

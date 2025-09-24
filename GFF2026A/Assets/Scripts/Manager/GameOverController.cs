@@ -5,7 +5,7 @@ public class GameOverController : MonoBehaviour
 {
     [Header("Refs")]
     [SerializeField] private AnimalManager animalManager;
-    [SerializeField] private HoldController holder;
+    [SerializeField] private PlayerController holder;
     [SerializeField] private AnimalSpawner spawner;         // decider/db取得用
     [SerializeField] private Transform spawnPoint;          // リセット時の初期Y決定に使う
     [SerializeField] private Camera mainCamera;             // 位置/ズームを戻したい場合（任意）
