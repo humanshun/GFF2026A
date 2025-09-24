@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameOverController : MonoBehaviour
 {
@@ -98,6 +99,23 @@ public class GameOverController : MonoBehaviour
 
         int totalScore = AnimalManager.Instance.CalculateTotalScore();
         Debug.Log($"ゲームオーバー！ スコア：{totalScore}");
+
+        if (Auth.instance != null)
+        {
+            Auth.instance.UpdateBestScoreIfHigher(totalScore, (ok, latestBest) =>
+            {
+                if (ok)
+                {
+                    Debug.Log($"ベスト更新処理完了。最新ベスト：{latestBest}");
+                }
+                else
+                {
+                    Debug.LogWarning("ベスト更新処理に失敗しました");
+                }
+
+                SceneManager.LoadScene("Result");
+            });
+        }
     }
 
     void ResetGame()
