@@ -3,7 +3,6 @@ using Firebase;
 using Firebase.Auth;
 using Firebase.Extensions;
 using Firebase.Firestore;
-using UnityEditor.U2D.Aseprite;
 using UnityEngine.SceneManagement;
 
 public class Auth : MonoBehaviour
