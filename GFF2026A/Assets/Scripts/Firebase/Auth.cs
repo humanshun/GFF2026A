@@ -4,6 +4,7 @@ using Firebase.Auth;
 using Firebase.Extensions;
 using Firebase.Firestore;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 public class Auth : MonoBehaviour
 {
@@ -117,6 +118,77 @@ public class Auth : MonoBehaviour
             {
                 Debug.Log("ユーザーデータの登録に失敗しました");
             }
+        });
+    }
+
+    public void UpdateBestScoreIfHigher(int newScore, System.Action<bool, int> callback = null)
+    {
+        if (user == null || firestore == null)
+        {
+            Debug.LogWarning("Auth 未初期化または未ログインです");
+            callback?.Invoke(false, -1);
+            return;
+        }
+
+        string uid = user.UserId;
+        var docRef = firestore.Collection("userInfo").Document(uid);
+
+        docRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
+        {
+            if (!task.IsCompleted || task.IsFaulted || task.IsCanceled)
+            {
+                Debug.LogWarning("ユーザーデータの取得に失敗");
+                callback?.Invoke(false, -1);
+                return;
+            }
+
+            var snap = task.Result;
+            int currentBest = 0;
+
+            if (snap.Exists && snap.ContainsField("bestScore"))
+            {
+                //Firestoreのintはlongにマップされることもあるので安全に取り出す
+                try { currentBest = snap.GetValue<int>("bestScore"); }
+                catch { currentBest = (int)snap.GetValue<long>("bestScore"); }
+            }
+
+            if (newScore > currentBest)
+            {
+                int nowUnix = (int)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds;
+                var updates = new Dictionary<string, object>
+                {
+                    { "bestScore", newScore },
+                    { "timestamp", nowUnix }
+                };
+
+                //ついでにローカルキャッシュも更新
+                if (userData != null)
+                {
+                    userData.bestScore = newScore;
+                    userData.timestamp = nowUnix;
+                }
+
+                docRef.SetAsync(updates, SetOptions.MergeAll).ContinueWithOnMainThread(taskt =>
+                {
+                    if (!taskt.IsFaulted && !taskt.IsCanceled)
+                    {
+                        // 成功
+                        callback?.Invoke(true, newScore);
+                    }
+                    else
+                    {
+                        // 失敗
+                        if (taskt.Exception != null) Debug.LogException(taskt.Exception);
+                        callback?.Invoke(false, currentBest);
+                    }
+                });
+            }
+            else
+            {
+                //更新なし
+                Debug.Log($"bestScore 変化なし(現状 {currentBest}, 今回 {newScore})");
+            }
+
         });
     }
 }
