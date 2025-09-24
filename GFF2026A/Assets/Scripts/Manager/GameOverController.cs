@@ -24,8 +24,12 @@ public class GameOverController : MonoBehaviour
     bool _isGameOver;
     float _sinceLastSpawn; // 直近の生成からの経過時間
 
+    public static GameOverController Instance { get; private set; }
+
     void Awake()
     {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
         if (!animalManager) animalManager = AnimalManager.Instance;
         if (!mainCamera) mainCamera = Camera.main;
     }
@@ -43,6 +47,12 @@ public class GameOverController : MonoBehaviour
 
     void Update()
     {
+        //デバッグ
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            GameOver();
+        }
+
         if (_isGameOver) return;
 
         _timer += Time.deltaTime;
@@ -64,7 +74,7 @@ public class GameOverController : MonoBehaviour
             if (!go) continue;
             if (go.transform.position.y < failY)
             {
-                TriggerGameOver();
+                TriggerReset();
                 break;
             }
         }
@@ -76,13 +86,18 @@ public class GameOverController : MonoBehaviour
         _sinceLastSpawn = 0f;
     }
 
-    public void TriggerGameOver()
+    public void TriggerReset()
+    {
+        ResetGame();
+    }
+
+    public void GameOver()
     {
         if (_isGameOver) return;
         _isGameOver = true;
 
-        // ここで演出（SFX/画面フラッシュ/文字）を出してもOK
-        ResetGame();
+        int totalScore = AnimalManager.Instance.CalculateTotalScore();
+        Debug.Log($"ゲームオーバー！ スコア：{totalScore}");
     }
 
     void ResetGame()

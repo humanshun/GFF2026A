@@ -9,6 +9,6 @@ public class KillZone2D : MonoBehaviour
         // AnimalPiece だけ対象にしたいならフィルタ
         if (!other.GetComponentInParent<AnimalPiece>()) return;
 
-        gameOver?.TriggerGameOver(); // publicにしておく
+        gameOver?.TriggerReset(); // publicにしておく
     }
 }
