@@ -1,4 +1,4 @@
-﻿
+﻿using UnityEngine.SceneManagement;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using TMPro;
@@ -26,5 +26,13 @@ public class UIDeme : MonoBehaviour
             output.text = "名前は半角英数字と日本語で2～12文字以内にしてください";
 
         }
+
     }
+    public void GameStart()
+    {
+        SceneManager.LoadScene("InGame");
+    }
+
+
+
 }
