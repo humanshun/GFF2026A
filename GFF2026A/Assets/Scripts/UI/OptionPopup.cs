@@ -24,11 +24,11 @@ public class OptionPopup : MonoBehaviour
 
     public void ChangBGMVolume()
     {
-        soundjson.UpdateVolume("BGM", bgmSlider.value);
+        AudioManager.Instance.SetBGMVolume(bgmSlider.value);
     }
 
     public void ChangSEVolume()
     {
-        soundjson.UpdateVolume("SE", seSlider.value);
+        AudioManager.Instance.SetSEVolume(seSlider.value);
     }
 }
