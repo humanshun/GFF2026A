@@ -3,13 +3,22 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using TMPro;
 using UnityEngine.Windows;
+using UnityEngine.UI;
+using UnityEditor.U2D.Sprites;
+using Unity.VisualScripting;
 
 public class UIDeme : MonoBehaviour
 {
     public TextMeshProUGUI output;
     public TMP_InputField userName;
+   
+    public int max = 12;
+    public int mini = 2;
 
     private string allowedPattern = @"^[ぁ-んァ-ン\p{IsCJKUnifiedIdeographs} a-zA-Z0-9]+$";
+
+    
+
     public void ButtonDemo()
     {
         string input = userName.text;
@@ -33,6 +42,18 @@ public class UIDeme : MonoBehaviour
         SceneManager.LoadScene("InGame");
     }
 
+    public void namelimit()
+    {
+        string name = userName.text;
+        int namecount = name.Length;
 
+        if (mini <= namecount&&namecount <= max)
+        {
+            Debug.Log(namecount);
+            SceneManager.LoadScene("InGame");
+        }
+    }
+
+    
 
 }
