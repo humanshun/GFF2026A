@@ -37,6 +37,8 @@ public class UIDeme : MonoBehaviour
         }
 
     }
+    [SerializeField]public TMP_Text Input;
+
     public void GameStart()
     {
         SceneManager.LoadScene("InGame");
@@ -47,11 +49,42 @@ public class UIDeme : MonoBehaviour
         string name = userName.text;
         int namecount = name.Length;
 
-        if (mini <= namecount&&namecount <= max)
+        //if (mini <= namecount&&namecount <= max)
+        //{
+        //    Debug.Log(namecount +  "文字：名前の長さが有効です。");
+        //    SceneManager.LoadScene("InGame");
+        //}
+        //else
+        //{
+        //    output.text = $"名前は{mini}～{max}文字以内にしてください";
+        //    Debug.Log("無効な名前の長さ：" + namecount);
+        //}
+        switch (namecount)
         {
-            Debug.Log(namecount);
-            SceneManager.LoadScene("InGame");
+            case int n when(n >= 2 && n <= 12):
+                Debug.Log(namecount + "文字：名前の長さが有効です。");
+                Input.text = "ログイン中...";
+                Input.color = Color.white;
+                SceneManager.LoadScene("InGame");
+            break;
+
+            case int n when (n > 12):
+                Debug.Log(namecount + "文字：名前の長さが１２文字以上のため無効です。");
+                Input.text = "文字数が超えています";
+                Input.color = Color.red;
+            break;
+
+            case int n when (n < 2):
+                Debug.Log(namecount + "文字：名前の長さが２文字以下のため無効です。");
+                Input.text = "文字数が足りません";
+                Input.color = Color.red;
+            break;
+
+            default:
+                Debug.Log(namecount + "文字：名前の長さが無効です。");
+            break;
         }
+        
     }
 
     
