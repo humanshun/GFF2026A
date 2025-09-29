@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Cysharp.Threading.Tasks;
 
 public class AnimalManager : MonoBehaviour, IAnimalRegistry
 {
@@ -60,6 +61,35 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
     {
         StopAllCoroutines();
         StartCoroutine(CoClearAll());
+    }
+
+    // AnimalManager に追加（例）
+    public void ClearAllExcept(IEnumerable<GameObject> keep)
+    {
+        StopAllCoroutines();
+        StartCoroutine(CoClearAllExcept(keep));
+    }
+    private IEnumerator CoClearAllExcept(IEnumerable<GameObject> keep)
+    {
+        var keepSet = new HashSet<GameObject>(keep ?? Array.Empty<GameObject>());
+
+        // 登録リストのコピーを使ってDestroy
+        var copy = new List<GameObject>(gameObjects);
+        foreach (var go in copy)
+        {
+            if (!go) continue;
+
+            if (keepSet.Contains(go))
+            {
+                // 残すもの：Destroyしない・リストからも消さない
+                continue;
+            }
+
+            // 破棄対象
+            Destroy(go);
+            gameObjects.Remove(go);
+            yield return new WaitForSeconds(destroyInterval);
+        }
     }
 
     private IEnumerator CoClearAll()

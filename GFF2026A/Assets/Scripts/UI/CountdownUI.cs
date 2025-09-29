@@ -4,7 +4,7 @@ using UnityEngine;
 public class CountdownUI : MonoBehaviour
 {
     // 現在の時間
-    private float currentTime = 30;
+    [SerializeField] private float currentTime = 120f;
 
     // テキストの参照
     private TextMeshProUGUI timeText;
