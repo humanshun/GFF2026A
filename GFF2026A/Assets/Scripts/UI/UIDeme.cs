@@ -49,16 +49,7 @@ public class UIDeme : MonoBehaviour
         string name = userName.text;
         int namecount = name.Length;
 
-        //if (mini <= namecount&&namecount <= max)
-        //{
-        //    Debug.Log(namecount +  "文字：名前の長さが有効です。");
-        //    SceneManager.LoadScene("InGame");
-        //}
-        //else
-        //{
-        //    output.text = $"名前は{mini}～{max}文字以内にしてください";
-        //    Debug.Log("無効な名前の長さ：" + namecount);
-        //}
+        
         switch (namecount)
         {
             case int n when(n >= 2 && n <= 12):
