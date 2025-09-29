@@ -820,6 +820,7 @@ MonoBehaviour:
   userName: {fileID: 1734364363816855962}
   max: 12
   mini: 2
+  Input: {fileID: 2431044432803027380}
 --- !u!1 &8501232657721786954
 GameObject:
   m_ObjectHideFlags: 0
