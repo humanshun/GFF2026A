@@ -9,6 +9,7 @@ public class AnimalPiece : MonoBehaviour
     private bool _landedOnce;
 
     public event Action OnFirstLand;
+    public bool HasLanded { get; private set; }
 
     private void Awake()
     {
@@ -29,6 +30,8 @@ public class AnimalPiece : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        if (HasLanded) return; // 2回目以降は無視
+        HasLanded = true;
         if (_landedOnce) return; // 2回目以降は無視
         _landedOnce = true;
         OnFirstLand?.Invoke();

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Cysharp.Threading.Tasks;
 
 public class AnimalManager : MonoBehaviour, IAnimalRegistry
 {
@@ -14,7 +15,9 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
     public static AnimalManager Instance { get; private set; }
 
     public IReadOnlyList<GameObject> Registered => gameObjects;
-    public event Action<int> OnScoreRecalculated; // スコア集計完了時に通知
+
+    public event Action OnRegistryChanged; // 変更検知用イベント（登録/解除/全消し/何か変わった）
+
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -38,6 +41,8 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
         {
             gameObjects.Add(go);
         }
+
+        OnRegistryChanged?.Invoke();
     }
 
     // ===== 解除 =====
@@ -53,6 +58,8 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
         {
             gameObjects.Remove(go);
         }
+
+        OnRegistryChanged?.Invoke();
     }
 
     // ===== 全削除 =====
@@ -60,6 +67,36 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
     {
         StopAllCoroutines();
         StartCoroutine(CoClearAll());
+    }
+
+    // AnimalManager に追加（例）
+    public void ClearAllExcept(IEnumerable<GameObject> keep)
+    {
+        StopAllCoroutines();
+        StartCoroutine(CoClearAllExcept(keep));
+    }
+    private IEnumerator CoClearAllExcept(IEnumerable<GameObject> keep)
+    {
+        var keepSet = new HashSet<GameObject>(keep ?? Array.Empty<GameObject>());
+
+        // 登録リストのコピーを使ってDestroy
+        var copy = new List<GameObject>(gameObjects);
+        foreach (var go in copy)
+        {
+            if (!go) continue;
+
+            if (keepSet.Contains(go))
+            {
+                // 残すもの：Destroyしない・リストからも消さない
+                continue;
+            }
+
+            // 破棄対象
+            Destroy(go);
+            gameObjects.Remove(go);
+            yield return new WaitForSeconds(destroyInterval);
+        }
+        OnRegistryChanged?.Invoke();
     }
 
     private IEnumerator CoClearAll()
@@ -71,28 +108,6 @@ public class AnimalManager : MonoBehaviour, IAnimalRegistry
             yield return new WaitForSeconds(destroyInterval);
         }
         gameObjects.Clear();
-    }
-
-    // ===== 全動物のスコア集計 =====
-    public int CalculateTotalScore()
-    {
-        int total = 0;
-        foreach (var go in gameObjects)
-        {
-            if (!go) continue;
-            var providers = go.GetComponentsInChildren<AnimalScoreProvider>();
-            foreach (var p in providers)
-            {
-                total += p.GetScore();
-            }
-        }
-        return total;
-    }
-
-    public int RecalculateAndNotify()
-    {
-        int total = CalculateTotalScore();
-        OnScoreRecalculated?.Invoke(total);
-        return total;
+        OnRegistryChanged?.Invoke(); // ★完了後に通知
     }
 }

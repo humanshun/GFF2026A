@@ -39,6 +39,9 @@ public class StackHeightTracker : MonoBehaviour
                 {
                     if (!go) continue;
 
+                    var piece = go.GetComponent<AnimalPiece>();
+                    if (piece && !piece.HasLanded) continue;
+
                     // 1) Collider2D優先
                     var col = go.GetComponentInChildren<Collider2D>();
                     if (col)

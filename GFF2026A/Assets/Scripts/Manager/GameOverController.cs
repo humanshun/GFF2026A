@@ -97,42 +97,41 @@ public class GameOverController : MonoBehaviour
         if (_isGameOver) return;
         _isGameOver = true;
 
-        int totalScore = AnimalManager.Instance.CalculateTotalScore();
-        Debug.Log($"ゲームオーバー！ スコア：{totalScore}");
+        int totalScore = 0;
 
+        if (ScoreManager.Instance != null)
+        {
+            totalScore = ScoreManager.Instance.CurrentScore;
+        }
+        
         if (Auth.instance != null)
         {
             Auth.instance.UpdateBestScoreIfHigher(totalScore, (ok, latestBest) =>
             {
-                if (ok)
-                {
-                    Debug.Log($"ベスト更新処理完了。最新ベスト：{latestBest}");
-                }
-                else
-                {
-                    Debug.LogWarning("ベスト更新処理に失敗しました");
-                }
-
+                if (ok) Debug.Log($"ベスト更新処理完了。最新ベスト：{latestBest}");
+                else Debug.LogWarning("ベスト更新処理に失敗しました");
                 SceneManager.LoadScene("Result");
             });
         }
     }
-
     void ResetGame()
     {
-        // 全削除
-        if (animalManager) animalManager.ClearAll();
+        var held = holder && holder.HasHolding ? holder.CurrentHolding : null;
 
-        // Nextリスト再構築
+        // 登録から「保持中は除外」してクリア
+        if (animalManager)
+            animalManager.ClearAllExcept(held ? new[]{ held } : null);
+
+        // Nextリスト再構築（既存）
         if (spawner && spawner.Decider is NextDecider nd)
         {
-            var dbField = typeof(AnimalSpawner).GetField("database", 
+            var dbField = typeof(AnimalSpawner).GetField("database",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var db = dbField?.GetValue(spawner) as AnimalDatabase; // 内部参照を拝借
+            var db = dbField?.GetValue(spawner) as AnimalDatabase;
             if (db) nd.Prime(db);
         }
 
-        // スポーン位置リセット（地面 + 余白）
+        // スポーン位置リセット
         if (spawnPoint)
         {
             var p = spawnPoint.position;
@@ -140,20 +139,25 @@ public class GameOverController : MonoBehaviour
             spawnPoint.position = p;
         }
 
-        // カメラ初期化（任意）
+        // カメラ初期化
         if (mainCamera && mainCamera.orthographic)
         {
             mainCamera.transform.position = cameraStartPos;
             mainCamera.orthographicSize = cameraStartSize;
         }
 
-        // 次を保持生成
+        // ★ 保持中なら何もしない（落とさない）
+        // ★ 保持が無い場合だけ、次を生成
         if (holder)
         {
-            holder.HandleDropOrPrepare(); // 保持が無ければPrepareNextHold()が走る設定
-            _sinceLastSpawn = 0f;
+            if (!holder.HasHolding)
+            {
+                holder.HandleDropOrPrepare(); // → 内部で PrepareNextHold が走る設定
+                _sinceLastSpawn = 0f;
+            }
         }
 
         _isGameOver = false;
     }
+
 }
