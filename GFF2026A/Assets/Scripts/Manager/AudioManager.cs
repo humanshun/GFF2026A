@@ -11,6 +11,8 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private List<AudioClipData> bgmClips;
     [SerializeField] private List<AudioClipData> seClips;
 
+    [SerializeField] private AudioLibrarySO audioLibrary;
+
     // Soundjsonの参照
     [SerializeField] Soundjson soundjson;
 
@@ -21,6 +23,10 @@ public class AudioManager : MonoBehaviour
     // 音量
     private float bgmVolume = 1f;
     private float seVolume = 1f;
+
+    // 音量の取得
+    public float GetBGMVolume() => bgmVolume;
+    public float GetSEVolume() => seVolume;
 
     private void Awake()
     {
@@ -44,27 +50,59 @@ public class AudioManager : MonoBehaviour
     void Start()
     {
         // 仮再生場所
-        PlayBGM(0);
+        PlayBGM("BGM");
     }
 
     // BGMの再生
-    public void PlayBGM(int index)
+    public void PlayBGM(string key)
     {
-        if (index < 0 || index >= bgmClips.Count) return;
-        bgmSource.clip = bgmClips[index].clip;
+        var data = audioLibrary.GetClipData(key);
+        if (data == null || data.AudioType != AudioType.BGM) return;
+
+        bgmSource.clip = data.Clip;
         bgmSource.volume = bgmVolume;
+        bgmSource.loop = data.Loop;
         bgmSource.Play();
     }
 
     // SEの再生
-    public void PlaySE(int index)
+    public void PlaySE(string key)
     {
-        if (index < 0 || index >= seClips.Count) return;
-        seSource.PlayOneShot(seClips[index].clip, seVolume);
+        var data = audioLibrary.GetClipData(key);
+        if (data == null || data.AudioType != AudioType.SE) return;
+
+        seSource.PlayOneShot(data.Clip, seVolume);
     }
 
-    // BGMの停止
-    public void StopBGM() => bgmSource.Stop();
+    // BGMの停止・再開
+    public void ToggleBGM()
+    {
+        if (bgmSource.isPlaying)
+        {
+            // 一時停止
+            bgmSource.Pause();
+        }
+        else if (bgmSource.clip != null)
+        {
+            // 再開
+            bgmSource.UnPause();
+        }
+    }
+
+    // SEの停止・再開
+    public void ToggleSE()
+    {
+        if (bgmSource.isPlaying)
+        {
+            // 一時停止
+            bgmSource.Pause();
+        }
+        else if (bgmSource.clip != null)
+        {
+            // 再開
+            bgmSource.UnPause();
+        }
+    }
 
     // BGMのセット
     public void SetBGMVolume(float volume)

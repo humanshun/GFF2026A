@@ -1,17 +1,24 @@
 using UnityEngine;
-using UnityEngine.Android;
 
-public enum AudioType{ BGM, SE }
 
 [CreateAssetMenu(fileName = "AudioClipData", menuName = "Audio/ClipData")]
 public class AudioClipData : ScriptableObject
 {
-    // BGMかSEか
-    public AudioType audioType;
+    [SerializeField] private string key;
+
+    [SerializeField] private AudioType audioType;
+
+    [SerializeField] private bool loop;
 
     // 音源
-    public AudioClip clip;
+    [SerializeField] private AudioClip clip;
 
     // デフォルト音量
-    [Range(0f, 1f)] public float defoultVolume = 1f;
+    [Range(0f, 1f)][SerializeField] private float defoultVolume = 1f;
+
+    public string Key => key;
+    public AudioType AudioType => audioType;
+    public bool Loop => loop;
+    public AudioClip Clip => clip;
+    public float DefoultVolume => defoultVolume;
 }

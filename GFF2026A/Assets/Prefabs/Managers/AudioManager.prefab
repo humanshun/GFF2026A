@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6671887714169397969}
   - component: {fileID: 653441009306170941}
   - component: {fileID: 3411603085033969534}
+  - component: {fileID: 4385941744015357396}
   m_Layer: 0
   m_Name: AudioManager
   m_TagString: Untagged
@@ -45,9 +46,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d3eb34957e1e0a43a6b376e37d61cba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bgmClips:
-  - {fileID: 11400000, guid: cfe3d39882deccc4a9f6aef442c6ed8f, type: 2}
+  bgmClips: []
   seClips: []
+  audioLibrary: {fileID: 11400000, guid: e8826f8ccc49b6e459eb38ac0ddcf62e, type: 2}
   soundjson: {fileID: 3411603085033969534}
 --- !u!114 &3411603085033969534
 MonoBehaviour:
@@ -59,5 +60,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9d04f7e8acb1cdc48af5546acea18b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &4385941744015357396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3303565834315222699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f84c1f9f42cab648ac284c598e74a1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 

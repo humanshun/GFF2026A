@@ -9,11 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76c3bbf5ac5df184c917194001c2b428, type: 3}
-  m_Name: AudioClipData
+  m_Script: {fileID: 11500000, guid: 28de11ec4900dba4dae933617fec62d6, type: 3}
+  m_Name: AudioClipDatabase
   m_EditorClassIdentifier: 
-  key: BGM
-  audioType: 0
-  loop: 1
-  clip: {fileID: 8300000, guid: 27db679c5b0e28f469e7ac0cf4298877, type: 3}
-  defoultVolume: 1
+  clipDataList:
+  - {fileID: 11400000, guid: cfe3d39882deccc4a9f6aef442c6ed8f, type: 2}
