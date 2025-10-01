@@ -1,50 +1,82 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using System;
 
 public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance { get; private set; }
 
-    public event Action<int> OnScoreChanged; // スコア変更時に通知
+    public event Action<int> OnScoreChanged;
     public int CurrentScore { get; private set; }
 
-    [SerializeField] private AnimalManager animalManager;
+    public int LastRunScore { get; private set; }
+    public void SetLastRunScore(int score) => LastRunScore = score;
 
-    private void Awake()
+    [SerializeField] private AnimalManager animalManager; // Inspector参照でもOK。毎回再解決する
+
+    void Awake()
     {
-        // 既に存在している場合は削除、なければ自分を代入
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject); // シーンをまたいでも破棄されない
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     void OnEnable()
     {
-        if (animalManager != null)
-        {
-            animalManager.OnRegistryChanged += RecalculateAndNotify;
-        }
-        RecalculateAndNotify(); // ★初期反映
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        // 起動直後の初期シーンでも一度バインド
+        RebindAnimalManager();
+        RecalculateAndNotify();
     }
 
     void OnDisable()
     {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        UnsubscribeAnimalManager();
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // 新しいシーンの AnimalManager に差し替え
+        RebindAnimalManager();
+
+        // InGame に戻ったらスコア初期化（シーン名はあなたの実名に合わせて）
+        if (scene.name == "InGame")
+            ResetScore();
+    }
+
+    void RebindAnimalManager()
+    {
+        // 既存購読を外す
+        UnsubscribeAnimalManager();
+
+        // 新しいインスタンスを拾う（Inspector未設定/破棄済みの保険）
+        if (animalManager == null || animalManager != AnimalManager.Instance)
+            animalManager = AnimalManager.Instance;
+
+        // 購読し直し
         if (animalManager != null)
-        {
+            animalManager.OnRegistryChanged += RecalculateAndNotify;
+    }
+
+    void UnsubscribeAnimalManager()
+    {
+        if (animalManager != null)
             animalManager.OnRegistryChanged -= RecalculateAndNotify;
+    }
+
+    public void ResetScore()
+    {
+        if (CurrentScore != 0)
+        {
+            CurrentScore = 0;
+            OnScoreChanged?.Invoke(CurrentScore);
         }
     }
 
-    // 集計ロジックはここに集約
     public void RecalculateAndNotify()
     {
+        if (animalManager == null) return;
         int total = 0;
         if (animalManager != null)
         {
@@ -54,7 +86,8 @@ public class ScoreManager : MonoBehaviour
                 var providers = go.GetComponentsInChildren<AnimalScoreProvider>();
                 foreach (var p in providers)
                 {
-                    if (p.IncludeInScore) // ★保持中は false、初着地で true
+                    // ★保持中は除外（初着地で IncludeInScore=true に）
+                    if (p.IncludeInScore)
                         total += p.GetScore();
                 }
             }

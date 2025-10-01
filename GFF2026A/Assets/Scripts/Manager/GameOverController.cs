@@ -97,21 +97,25 @@ public class GameOverController : MonoBehaviour
         if (_isGameOver) return;
         _isGameOver = true;
 
-        int totalScore = 0;
+        // InGame 内で最終反映してから確定値を保存
+        ScoreManager.Instance?.RecalculateAndNotify();
+        int finalScore = ScoreManager.Instance?.CurrentScore ?? 0;
+        ScoreManager.Instance?.SetLastRunScore(finalScore);
 
-        if (ScoreManager.Instance != null)
-        {
-            totalScore = ScoreManager.Instance.CurrentScore;
-        }
-        
+        // Auth がなくても必ず Result へ
         if (Auth.instance != null)
         {
-            Auth.instance.UpdateBestScoreIfHigher(totalScore, (ok, latestBest) =>
+            Auth.instance.UpdateBestScoreIfHigher(finalScore, (ok, latestBest) =>
             {
                 if (ok) Debug.Log($"ベスト更新処理完了。最新ベスト：{latestBest}");
-                else Debug.LogWarning("ベスト更新処理に失敗しました");
-                SceneManager.LoadScene("Result");
+                else Debug.LogWarning("ベスト更新処理（更新なし or 失敗）");
+
+                SceneManager.LoadScene("Result"); // 成否に関わらず遷移
             });
+        }
+        else
+        {
+            SceneManager.LoadScene("Result"); // ★ 未ログイン/未初期化でも遷移
         }
     }
     void ResetGame()
@@ -120,7 +124,7 @@ public class GameOverController : MonoBehaviour
 
         // 登録から「保持中は除外」してクリア
         if (animalManager)
-            animalManager.ClearAllExcept(held ? new[]{ held } : null);
+            animalManager.ClearAllExcept(held ? new[] { held } : null);
 
         // Nextリスト再構築（既存）
         if (spawner && spawner.Decider is NextDecider nd)

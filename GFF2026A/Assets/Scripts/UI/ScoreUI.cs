@@ -1,30 +1,39 @@
 using UnityEngine;
 using TMPro;
-using Unity.VisualScripting;
+using Cysharp.Threading.Tasks;
 
 public class ScoreUI : MonoBehaviour
 {
-    public TextMeshProUGUI scoreText;
+    [SerializeField] private TextMeshProUGUI scoreText;
 
-    void OnEnable()
+    void Awake()
     {
+        // Inspector 未割り当ての保険
+        if (!scoreText)
+            scoreText = GetComponentInChildren<TextMeshProUGUI>(true);
+    }
+
+    async void OnEnable()
+    {
+        // ScoreManager の生成を待つ（1フレームで来ない場合も考慮）
+        await UniTask.WaitUntil(() => ScoreManager.Instance != null, 
+                                cancellationToken: this.GetCancellationTokenOnDestroy());
+
+        // ここに来た時点で Instance は非 null
         ScoreManager.Instance.OnScoreChanged += UpdateScoreUI;
+
+        // 初期表示も更新
         UpdateScoreUI(ScoreManager.Instance.CurrentScore);
     }
 
     void OnDisable()
     {
         if (ScoreManager.Instance != null)
-        {
             ScoreManager.Instance.OnScoreChanged -= UpdateScoreUI;
-        }
     }
 
     void UpdateScoreUI(int newScore)
     {
-        if (scoreText != null)
-        {
-            scoreText.text = newScore.ToString();
-        }
+        if (scoreText) scoreText.text = newScore.ToString();
     }
 }
