@@ -55,6 +55,10 @@ public class PlayerController : MonoBehaviour
     {
         CurrentHolding = go;
 
+        // スコア集計OFF（保持中は数えない）
+        foreach (var p in go.GetComponentsInChildren<AnimalScoreProvider>(includeInactive: true))
+            p.SetIncludeInScore(false);
+
         // Rigidbody2D をキャッシュして保持モードに切り替え
         _holdingRb = go.GetComponentInChildren<Rigidbody2D>();
         if (_holdingRb)
@@ -83,7 +87,7 @@ public class PlayerController : MonoBehaviour
 
         // ★ 物理の復帰は次のFixedUpdateでまとめて実行する（抜け防止）
         var cols = _holdingCols; // ローカル退避（後でフィールドをnullにするため）
-        var rbs  = CurrentHolding.GetComponentsInChildren<Rigidbody2D>(includeInactive: false);
+        var rbs = CurrentHolding.GetComponentsInChildren<Rigidbody2D>(includeInactive: false);
         ActivatePhysicsNextFixedAsync(cols, rbs, releaseGravityScale, this.GetCancellationTokenOnDestroy()).Forget();
 
         // 着地一発目で「プレイヤー(カメラ親)を上げる + 次を用意」
@@ -178,6 +182,10 @@ public class PlayerController : MonoBehaviour
 
         if (holdSlot.IsEmpty)
         {
+            // ホールドに入れる → スコア除外
+            foreach (var p in holdingGO.GetComponentsInChildren<AnimalScoreProvider>(true))
+                p.SetIncludeInScore(false);
+
             // ピースをホールドに格納 → 新しいピースを準備
             holdSlot.Store(holdingGO);
             _holdingRb = null;
@@ -187,6 +195,10 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
+            // スワップ：持ってる方はホールドへ（除外）
+            foreach (var p in holdingGO.GetComponentsInChildren<AnimalScoreProvider>(true))
+                p.SetIncludeInScore(false);
+
             // ホールド内のピースと現在のピースを入れ替える
             var spawnPos = spawnPoint ? spawnPoint.position : Vector3.zero;
             var fromHold = holdSlot.TakeOutForHolding(spawnPos);

@@ -1,16 +1,15 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class ScoreManager : MonoBehaviour
 {
-    public static ScoreManager Instance;
-    public int currentScore = 0; // 実際のスコア
+    public static ScoreManager Instance { get; private set; }
 
-    // 仮のスコアリスト
-    public List<AnimalData> tempScores;
+    public event Action<int> OnScoreChanged; // スコア変更時に通知
+    public int CurrentScore { get; private set; }
 
-    private int index = 0; // どの仮スコアを使うか管理
-    public event System.Action<int> OnScoreChanged;
+    [SerializeField] private AnimalManager animalManager;
 
     private void Awake()
     {
@@ -25,34 +24,46 @@ public class ScoreManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    void Update()
+
+    void OnEnable()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (animalManager != null)
         {
-            AddTempScore();
+            animalManager.OnRegistryChanged += RecalculateAndNotify;
         }
-        if (Input.GetKeyDown(KeyCode.R))
+        RecalculateAndNotify(); // ★初期反映
+    }
+
+    void OnDisable()
+    {
+        if (animalManager != null)
         {
-            ResetScoreAndIndex();
+            animalManager.OnRegistryChanged -= RecalculateAndNotify;
         }
     }
 
-
-
-    void AddTempScore()
+    // 集計ロジックはここに集約
+    public void RecalculateAndNotify()
     {
-        if (tempScores != null && index < tempScores.Count)
+        int total = 0;
+        if (animalManager != null)
         {
-            int addScore = tempScores[index].ScoreValue;
-            currentScore += addScore;
-            OnScoreChanged?.Invoke(currentScore); // イベント発火
-            index++;
+            foreach (var go in animalManager.Registered)
+            {
+                if (!go) continue;
+                var providers = go.GetComponentsInChildren<AnimalScoreProvider>();
+                foreach (var p in providers)
+                {
+                    if (p.IncludeInScore) // ★保持中は false、初着地で true
+                        total += p.GetScore();
+                }
+            }
         }
-    }
-    void ResetScoreAndIndex()
-    {
-        currentScore = 0;
-        index = 0;
-        OnScoreChanged?.Invoke(currentScore); // イベント発火
+
+        if (total != CurrentScore)
+        {
+            CurrentScore = total;
+            OnScoreChanged?.Invoke(CurrentScore);
+        }
     }
 }

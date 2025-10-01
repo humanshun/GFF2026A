@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using Unity.VisualScripting;
 
 public class ScoreUI : MonoBehaviour
 {
@@ -8,16 +9,22 @@ public class ScoreUI : MonoBehaviour
     void OnEnable()
     {
         ScoreManager.Instance.OnScoreChanged += UpdateScoreUI;
-        scoreText.text = ScoreManager.Instance.currentScore.ToString();
+        UpdateScoreUI(ScoreManager.Instance.CurrentScore);
     }
 
     void OnDisable()
     {
-        ScoreManager.Instance.OnScoreChanged -= UpdateScoreUI;
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.OnScoreChanged -= UpdateScoreUI;
+        }
     }
 
     void UpdateScoreUI(int newScore)
     {
-        scoreText.text = newScore.ToString();
+        if (scoreText != null)
+        {
+            scoreText.text = newScore.ToString();
+        }
     }
 }

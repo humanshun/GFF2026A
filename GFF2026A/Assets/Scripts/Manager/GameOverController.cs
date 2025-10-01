@@ -96,8 +96,14 @@ public class GameOverController : MonoBehaviour
     {
         if (_isGameOver) return;
         _isGameOver = true;
-        int totalScore = AnimalManager.Instance.CalculateTotalScore();
-        Debug.Log($"ゲームオーバー！ スコア：{totalScore}");
+
+        int totalScore = 0;
+
+        if (ScoreManager.Instance != null)
+        {
+            totalScore = ScoreManager.Instance.CurrentScore;
+        }
+        
         if (Auth.instance != null)
         {
             Auth.instance.UpdateBestScoreIfHigher(totalScore, (ok, latestBest) =>
