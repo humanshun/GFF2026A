@@ -96,27 +96,84 @@ public class Auth : MonoBehaviour
         if (string.IsNullOrEmpty(username))
         {
             Debug.Log("名前が入力されていません");
+            callback?.Invoke(false);
+            return;
+        }
+        if (user == null || firestore == null)
+        {
+            Debug.LogWarning("Auth 未初期化または未ログインです");
+            callback?.Invoke(false);
             return;
         }
 
         string uid = user.UserId;
-        userData = new UserData
-        {
-            username = username,
-            bestScore = 0,
-            timestamp = (int)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds
-        };
+        var docRef = firestore.Collection("userInfo").Document(uid);
+        int nowUnix = (int)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds;
 
-        firestore.Collection("userInfo").Document(uid).SetAsync(userData).ContinueWithOnMainThread(task =>
+        // まず存在確認
+        docRef.GetSnapshotAsync().ContinueWithOnMainThread(getTask =>
         {
-            if (task.IsCompleted)
+            if (!getTask.IsCompleted || getTask.IsFaulted || getTask.IsCanceled)
             {
-                Debug.Log("ユーザーデータの登録に成功しました");
-                SceneManager.LoadScene("InGame");
+                Debug.LogWarning("ユーザーデータの取得に失敗");
+                callback?.Invoke(false);
+                return;
+            }
+
+            var snap = getTask.Result;
+
+            if (snap.Exists)
+            {
+                // 既存ユーザー → username/timestamp だけ差分更新（bestScoreは維持）
+                var updates = new Dictionary<string, object>
+                {
+                { "username",  username },
+                { "timestamp", nowUnix }
+                };
+
+                docRef.SetAsync(updates, SetOptions.MergeAll).ContinueWithOnMainThread(setTask =>
+                {
+                    bool ok = setTask.IsCompleted && !setTask.IsFaulted && !setTask.IsCanceled;
+                    if (ok)
+                    {
+                        // ローカルキャッシュを更新（bestScore は既存値を保持）
+                        if (userData == null) userData = new UserData();
+                        userData.username = username;
+                        userData.timestamp = nowUnix;
+
+                        if (snap.ContainsField("bestScore"))
+                        {
+                            try { userData.bestScore = snap.GetValue<int>("bestScore"); }
+                            catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
+                        }
+                        else
+                        {
+                            userData.bestScore = 0;
+                        }
+                    }
+
+                    callback?.Invoke(ok);
+                    if (ok) SceneManager.LoadScene("InGame");
+                });
             }
             else
             {
-                Debug.Log("ユーザーデータの登録に失敗しました");
+                // 新規ユーザー → 初期化して作成
+                var newData = new UserData
+                {
+                    username = username,
+                    bestScore = 0,
+                    timestamp = nowUnix
+                };
+
+                docRef.SetAsync(newData).ContinueWithOnMainThread(setTask =>
+                {
+                    bool ok = setTask.IsCompleted && !setTask.IsFaulted && !setTask.IsCanceled;
+                    if (ok) userData = newData;
+
+                    callback?.Invoke(ok);
+                    if (ok) SceneManager.LoadScene("InGame");
+                });
             }
         });
     }
@@ -187,6 +244,7 @@ public class Auth : MonoBehaviour
             {
                 //更新なし
                 Debug.Log($"bestScore 変化なし(現状 {currentBest}, 今回 {newScore})");
+                callback?.Invoke(false, currentBest);
             }
 
         });
