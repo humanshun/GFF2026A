@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 
 public class LoginUI : MonoBehaviour
 {
-    public GameObject UserRegisterPanel;
+    public GameObject userRegisterPanel;
+    public GameObject loginPanel;
+    public GameObject signUpPanel;
     public TMP_InputField emailInput;
     public TMP_InputField passwordInput;
 
@@ -29,6 +31,9 @@ public class LoginUI : MonoBehaviour
 
     void Start()
     {
+        userRegisterPanel.SetActive(false);
+        loginPanel.SetActive(true);
+        signUpPanel.SetActive(false);
         registarButton.onClick.AddListener(OnRegisterButton);
         loginButton.onClick.AddListener(OnLoginButton);
         submitButton.onClick.AddListener(OnSubmitUserData);
@@ -53,7 +58,8 @@ public class LoginUI : MonoBehaviour
         {
             if (success)
             {
-                UserRegisterPanel.SetActive(true);
+                signUpPanel.SetActive(false);
+                userRegisterPanel.SetActive(true);
             }
             else
             {
@@ -69,7 +75,8 @@ public class LoginUI : MonoBehaviour
         {
             if (success)
             {
-                UserRegisterPanel.SetActive(true);
+                loginPanel.SetActive(false);
+                userRegisterPanel.SetActive(true);
             }
             else
             {
