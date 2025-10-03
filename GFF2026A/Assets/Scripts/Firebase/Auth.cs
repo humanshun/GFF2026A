@@ -5,6 +5,9 @@ using Firebase.Extensions;
 using Firebase.Firestore;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using Google;
+using System.Threading.Tasks;
+using System;
 
 public class Auth : MonoBehaviour
 {
@@ -34,6 +37,9 @@ public class Auth : MonoBehaviour
                 FirebaseApp app = FirebaseApp.DefaultInstance;
                 firestore = FirebaseFirestore.DefaultInstance;
                 auth = FirebaseAuth.DefaultInstance;
+
+                // 端末にセッションを保存（次回以降ノー入力）
+                // TryAutoSignIn();
             }
             else
             {
@@ -247,6 +253,170 @@ public class Auth : MonoBehaviour
                 callback?.Invoke(false, currentBest);
             }
 
+        });
+    }
+
+    private void TryAutoSignIn()
+    {
+        var cu = auth?.CurrentUser;
+        if (cu == null)
+        {
+            Debug.Log("前回セッションなし → ログイン画面で待機");
+            return;
+        }
+
+        user = cu; //既存セッションを採用
+        user.ReloadAsync().ContinueWithOnMainThread(task =>
+        {
+            if (!task.IsFaulted && !task.IsCanceled)
+            {
+                Debug.Log($"AutoSignIn OK: {user.Email}");
+                LoadUserInfoThenEnterGame();
+            }
+            else
+            {
+                Debug.Log("AutoSignIn失敗 → 再ログインが必要");
+            }
+        });
+    }
+
+    private void LoadUserInfoThenEnterGame()
+    {
+        if (user == null || firestore == null)
+        {
+            SceneManager.LoadScene("InGame");
+            return;
+        }
+
+        var docRef = firestore.Collection("userInfo").Document(user.UserId);
+        docRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted && !task.IsFaulted && !task.IsCanceled && task.Result.Exists)
+            {
+                var snap = task.Result;
+                if (userData == null) userData = new UserData();
+
+                if (snap.ContainsField("username"))
+                    userData.username = snap.GetValue<string>("username");
+
+                if (snap.ContainsField("bestScore"))
+                {
+                    try { userData.bestScore = snap.GetValue<int>("bestScore"); }
+                    catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
+                }
+
+                if (snap.ContainsField("timestamp"))
+                {
+                    try { userData.timestamp = snap.GetValue<int>("timestamp"); }
+                    catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
+                }
+            }
+
+            SceneManager.LoadScene("InGame");
+        });
+    }
+
+    public async Task SignInWithGoogleAsync(string webClientId)
+    {
+#if UNITY_ANDROID || UNITY_IOS
+    var config = new GoogleSignInConfiguration {
+        WebClientId = webClientId,
+        RequestIdToken = true,
+        RequestEmail = true,
+    };
+    GoogleSignIn.Configuration = config;
+
+    try
+    {
+        var gsUser = await GoogleSignIn.DefaultInstance.SignIn();
+        var idToken = gsUser.IdToken;
+
+        var cred = GoogleAuthProvider.GetCredential(idToken, null);
+        var result = await FirebaseAuth.DefaultInstance.SignInWithCredentialAsync(cred);
+
+        user = result;
+        Debug.Log($"Google Sign-In OK: {user.Email}");
+
+        // シーン遷移はメインスレッドで
+        FirebaseHandler.RunOnMainThread(() => LoadUserInfoThenEnterGame());
+    }
+    catch (FirebaseException fe)
+    {
+        Debug.LogWarning($"Google Sign-In failed: {(AuthError)fe.ErrorCode} / {fe.Message}");
+    }
+    catch (System.Exception e)
+    {
+        Debug.LogWarning($"Google Sign-In failed: {e}");
+    }
+#else
+        Debug.LogWarning("Googleサインインはこのプラットフォーム未対応の実装です");
+        await Task.CompletedTask;  // ★ これでCS1998を回避
+#endif
+    }
+
+    public async Task SignInWithTwitterAsync(string oauthToken, string oauthTokenSecret)
+    {
+#if UNITY_ANDROID || UNITY_IOS
+    try {
+        var cred = TwitterAuthProvider.GetCredential(oauthToken, oauthTokenSecret);
+        var result = await FirebaseAuth.DefaultInstance.SignInWithCredentialAsync(cred);
+        user = result;
+        FirebaseHandler.RunOnMainThread(() => LoadUserInfoThenEnterGame());
+    } catch (Exception e) {
+        Debug.LogWarning($"Twitter Sign-In failed: {e}");
+    }
+#else
+        Debug.LogWarning("Twitterサインインは実機でテストしてね");
+        await Task.CompletedTask;
+#endif
+    }
+
+    public void EnterGameOrAskUsername(Action<bool> onNeedUserName)
+    {
+        // 認証/DBがまだならユーザー名入力へ
+        if (user == null || firestore == null) { onNeedUserName?.Invoke(true); return; }
+
+        var docRef = firestore.Collection("userInfo").Document(user.UserId);
+        docRef.GetSnapshotAsync().ContinueWithOnMainThread(t =>
+        {
+            bool need = true;
+
+            if (t.IsCompleted && !t.IsFaulted && !t.IsCanceled && t.Result.Exists)
+            {
+                var snap = t.Result;
+
+                // username の有無をチェック
+                string name = null;
+                if (snap.ContainsField("username"))
+                {
+                    try { name = snap.GetValue<string>("username"); }
+                    catch { name = null; }
+                }
+                need = string.IsNullOrEmpty(name);
+
+                // ついでにローカルキャッシュ更新（任意）
+                if (!need)
+                {
+                    if (userData == null) userData = new UserData();
+                    userData.username = name;
+
+                    if (snap.ContainsField("bestScore"))
+                    {
+                        try { userData.bestScore = snap.GetValue<int>("bestScore"); }
+                        catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
+                    }
+                    if (snap.ContainsField("timestamp"))
+                    {
+                        try { userData.timestamp = snap.GetValue<int>("timestamp"); }
+                        catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
+                    }
+                }
+            }
+
+            if (need)
+                onNeedUserName?.Invoke(true);     // ユーザー名未登録 → 入力パネルを出す
+            else
+                LoadUserInfoThenEnterGame();       // 既に登録あり → そのままゲームへ
         });
     }
 }
