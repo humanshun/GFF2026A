@@ -16,8 +16,10 @@ public class Auth : MonoBehaviour
     private FirebaseFirestore firestore;
     public FirebaseUser user { get; private set; }
     public UserData userData { get; private set; }
+    public event Action OnUserRegisterPanel;
+    public event Action OnClosePanel;
 
-    void Start()
+    void Awake()
     {
         if (instance == null)
         {
@@ -28,7 +30,10 @@ public class Auth : MonoBehaviour
         {
             Destroy(this.gameObject);
         }
+    }
 
+    void Start()
+    {
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsCompleted)
@@ -48,7 +53,7 @@ public class Auth : MonoBehaviour
         });
     }
 
-    public void Register(string email, string password, System.Action<bool> callback)
+    public void Register(string email, string password, Action<bool> callback)
     {
         // ちゃんとメールアドレスになっているかとか、入力されているかとか
         // パスワードは何文字以上ですよとか、本当はもっと厳密にチェック
@@ -61,7 +66,7 @@ public class Auth : MonoBehaviour
         CreateUser(email, password, callback);
     }
 
-    public void LoginFirebase(string email, string password, System.Action<bool> callback)
+    public void LoginFirebase(string email, string password, Action<bool> callback)
     {
         auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
         {
@@ -80,7 +85,7 @@ public class Auth : MonoBehaviour
         });
     }
 
-    void CreateUser(string email, string password, System.Action<bool> callback)
+    void CreateUser(string email, string password, Action<bool> callback)
     {
         auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
         {
@@ -97,7 +102,7 @@ public class Auth : MonoBehaviour
         });
     }
 
-    public void UserInfoRegister(string username, System.Action<bool> callback)
+    public void UserInfoRegister(string username, Action<bool> callback)
     {
         if (string.IsNullOrEmpty(username))
         {
@@ -114,7 +119,7 @@ public class Auth : MonoBehaviour
 
         string uid = user.UserId;
         var docRef = firestore.Collection("userInfo").Document(uid);
-        int nowUnix = (int)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds;
+        int nowUnix = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
 
         // まず存在確認
         docRef.GetSnapshotAsync().ContinueWithOnMainThread(getTask =>
@@ -159,7 +164,7 @@ public class Auth : MonoBehaviour
                     }
 
                     callback?.Invoke(ok);
-                    if (ok) SceneManager.LoadScene("InGame");
+                    if (ok) OnClosePanel?.Invoke();
                 });
             }
             else
@@ -178,13 +183,13 @@ public class Auth : MonoBehaviour
                     if (ok) userData = newData;
 
                     callback?.Invoke(ok);
-                    if (ok) SceneManager.LoadScene("InGame");
+                    if (ok) OnClosePanel?.Invoke();
                 });
             }
         });
     }
 
-    public void UpdateBestScoreIfHigher(int newScore, System.Action<bool, int> callback = null)
+    public void UpdateBestScoreIfHigher(int newScore, Action<bool, int> callback = null)
     {
         if (user == null || firestore == null)
         {
@@ -217,7 +222,7 @@ public class Auth : MonoBehaviour
 
             if (newScore > currentBest)
             {
-                int nowUnix = (int)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds;
+                int nowUnix = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
                 var updates = new Dictionary<string, object>
                 {
                     { "bestScore", newScore },
@@ -284,7 +289,7 @@ public class Auth : MonoBehaviour
     {
         if (user == null || firestore == null)
         {
-            SceneManager.LoadScene("InGame");
+            OnUserRegisterPanel?.Invoke();
             return;
         }
 
@@ -312,7 +317,7 @@ public class Auth : MonoBehaviour
                 }
             }
 
-            SceneManager.LoadScene("InGame");
+            OnUserRegisterPanel?.Invoke();
         });
     }
 
