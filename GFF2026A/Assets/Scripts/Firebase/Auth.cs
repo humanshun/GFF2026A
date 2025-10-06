@@ -3,7 +3,6 @@ using Firebase;
 using Firebase.Auth;
 using Firebase.Extensions;
 using Firebase.Firestore;
-using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using Google;
 using System.Threading.Tasks;
@@ -24,11 +23,11 @@ public class Auth : MonoBehaviour
         if (instance == null)
         {
             instance = this;
-            DontDestroyOnLoad(this.gameObject);
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
-            Destroy(this.gameObject);
+            Destroy(gameObject);
         }
     }
 

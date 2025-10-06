@@ -29,11 +29,19 @@ public class LoginUI : MonoBehaviour
 
     [SerializeField] string googleWebClientId = "487118386482-2krd3ge76vv8jf94n2ebgarudvrgmu0u.apps.googleusercontent.com";
 
+    void OnEnable()
+    {
+        Auth.instance.OnUserRegisterPanel += DisplayUserRegisterPanel;
+        Auth.instance.OnClosePanel += ClosePanel;
+    }
+    void OnDisable()
+    {
+        Auth.instance.OnUserRegisterPanel -= DisplayUserRegisterPanel;
+        Auth.instance.OnClosePanel -= ClosePanel;
+    }
     void Start()
     {
-        userRegisterPanel.SetActive(false);
-        loginPanel.SetActive(true);
-        signUpPanel.SetActive(false);
+        DisplaySignUpPanel();
         registarButton.onClick.AddListener(OnRegisterButton);
         loginButton.onClick.AddListener(OnLoginButton);
         submitButton.onClick.AddListener(OnSubmitUserData);
@@ -118,5 +126,33 @@ public class LoginUI : MonoBehaviour
 #else
         Debug.LogWarning("Twitterサインインは実機でテストしてね");
 #endif
+    }
+
+    public void DisplayLoginPanel()
+    {
+        userRegisterPanel.SetActive(false);
+        loginPanel.SetActive(true);
+        signUpPanel.SetActive(false);
+    }
+
+    public void DisplaySignUpPanel()
+    {
+        userRegisterPanel.SetActive(false);
+        loginPanel.SetActive(false);
+        signUpPanel.SetActive(true);
+    }
+
+    public void DisplayUserRegisterPanel()
+    {
+        userRegisterPanel.SetActive(true);
+        loginPanel.SetActive(false);
+        signUpPanel.SetActive(false);
+    }
+
+    public void ClosePanel()
+    {
+        userRegisterPanel.SetActive(false);
+        loginPanel.SetActive(false);
+        signUpPanel.SetActive(false);
     }
 }
