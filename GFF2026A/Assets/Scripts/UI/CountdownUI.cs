@@ -4,7 +4,7 @@ using UnityEngine;
 public class CountdownUI : MonoBehaviour
 {
     // 現在の時間
-    private float currentTime = 120;
+    [SerializeField] private float currentTime = 120f;
 
     // テキストの参照
     private TextMeshProUGUI timeText;
@@ -21,7 +21,11 @@ public class CountdownUI : MonoBehaviour
         if (currentTime > 0)
         {
             currentTime -= Time.deltaTime;
-            if (currentTime < 0) currentTime = 0;
+            if (currentTime < 0)
+            {
+                currentTime = 0;
+                GameOverController.Instance.GameOver();
+            }
         }
         // 分と秒に変換して表示
         int totalSeconds = Mathf.FloorToInt(currentTime);
