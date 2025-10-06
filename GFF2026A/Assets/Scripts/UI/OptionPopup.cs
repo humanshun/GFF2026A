@@ -39,14 +39,4 @@ public class OptionPopup : MonoBehaviour
     {
         Destroy(optionScreen);
     }
-
-    // public void ChangBGMVolume()
-    // {
-    //     AudioManager.Instance.SetBGMVolume(bgmSlider.value);
-    // }
-
-    // public void ChangSEVolume()
-    // {
-    //     AudioManager.Instance.SetSEVolume(seSlider.value);
-    // }
 }
