@@ -119,6 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+
 --- !u!114 &118819218 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7154879596156017771, guid: 369be9de1419779459f6c69a83be0ce3, type: 3}
@@ -1385,7 +1386,6 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 982949298}
-  - {fileID: 1624593494}
   - {fileID: 1132355317}
   - {fileID: 954079347}
   - {fileID: 2143137976}
