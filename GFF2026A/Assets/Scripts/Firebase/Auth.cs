@@ -4,9 +4,9 @@ using Firebase.Auth;
 using Firebase.Extensions;
 using Firebase.Firestore;
 using System.Collections.Generic;
-using Google;
 using System.Threading.Tasks;
 using System;
+using UnityEngine.SceneManagement;
 
 public class Auth : MonoBehaviour
 {
@@ -17,6 +17,7 @@ public class Auth : MonoBehaviour
     public UserData userData { get; private set; }
     public event Action OnUserRegisterPanel;
     public event Action OnClosePanel;
+    public event Action OnUserDataUpdated;
 
     void Awake()
     {
@@ -43,7 +44,7 @@ public class Auth : MonoBehaviour
                 auth = FirebaseAuth.DefaultInstance;
 
                 // 端末にセッションを保存（次回以降ノー入力）
-                // TryAutoSignIn();
+                TryAutoSignIn();
             }
             else
             {
@@ -73,7 +74,7 @@ public class Auth : MonoBehaviour
             {
                 user = task.Result.User;
                 Debug.Log($"ログイン成功: {user.Email} ({user.UserId})");
-                Debug.Log("ユーザーUID" + user.UserId);
+                LoadUserInfoThenEnterGame();
                 callback(true);
             }
             else
@@ -160,6 +161,7 @@ public class Auth : MonoBehaviour
                         {
                             userData.bestScore = 0;
                         }
+                        OnUserDataUpdated?.Invoke();
                     }
 
                     callback?.Invoke(ok);
@@ -288,7 +290,7 @@ public class Auth : MonoBehaviour
     {
         if (user == null || firestore == null)
         {
-            OnUserRegisterPanel?.Invoke();
+            OnClosePanel?.Invoke();
             return;
         }
 
@@ -314,9 +316,14 @@ public class Auth : MonoBehaviour
                     try { userData.timestamp = snap.GetValue<int>("timestamp"); }
                     catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
                 }
-            }
 
-            OnUserRegisterPanel?.Invoke();
+                OnUserDataUpdated?.Invoke();
+                OnClosePanel?.Invoke();
+            }
+            else
+            {
+                OnUserRegisterPanel?.Invoke();
+            }
         });
     }
 
@@ -422,5 +429,58 @@ public class Auth : MonoBehaviour
             else
                 LoadUserInfoThenEnterGame();       // 既に登録あり → そのままゲームへ
         });
+    }
+
+    /// <summary>
+    /// ログアウト（セッション破棄→ローカルクリア→UI通知→任意でタイトルに戻る）
+    /// </summary>
+    public void Logout(bool goToTitleScene = true, string titleSceneName = "Title")
+    {
+        // 1) 連携SDKのサインアウト（使っている場合のみ）
+#if UNITY_ANDROID || UNITY_IOS
+        try
+        {
+            // Google 連携を使っている場合のみ有効
+            GoogleSignIn.DefaultInstance?.SignOut();
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"GoogleSignIn.SignOut 失敗: {e.Message}");
+        }
+#endif
+        // Twitter は Firebase 側の SignOut でOK（SDK側の保持はなし）
+
+        // 2) Firebase サインアウト
+        try
+        {
+            auth?.SignOut(); // これで CurrentUser は null になる
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Firebase SignOut 失敗: {e.Message}");
+        }
+
+        // 3) ローカルキャッシュをクリア
+        user = null;
+        userData = null;
+
+        // 4) UI へ通知
+        //   - TitleUIなどが「No Name」に更新できるように
+        OnUserDataUpdated?.Invoke();
+        //   - ログイン/ユーザー名入力パネルを出したい場合
+        OnUserRegisterPanel?.Invoke();
+
+        // 5) 必要ならタイトルへ戻す
+        if (goToTitleScene)
+        {
+            try
+            {
+                SceneManager.LoadScene(titleSceneName, LoadSceneMode.Single);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"シーン遷移失敗: {e.Message}");
+            }
+        }
     }
 }

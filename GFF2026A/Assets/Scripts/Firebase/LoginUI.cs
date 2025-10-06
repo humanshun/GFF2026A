@@ -26,6 +26,7 @@ public class LoginUI : MonoBehaviour
 
     // 追加：読み込み中のオーバーレイ/スピナー（任意）
     public GameObject loadingOverlay;
+    private TitleUI titleUI;
 
     [SerializeField] string googleWebClientId = "487118386482-2krd3ge76vv8jf94n2ebgarudvrgmu0u.apps.googleusercontent.com";
 
@@ -33,11 +34,14 @@ public class LoginUI : MonoBehaviour
     {
         Auth.instance.OnUserRegisterPanel += DisplayUserRegisterPanel;
         Auth.instance.OnClosePanel += ClosePanel;
+        titleUI = FindAnyObjectByType<TitleUI>();
+        if (titleUI != null) titleUI.OnChangeNameButton += DisplayUserRegisterPanel;
     }
     void OnDisable()
     {
         Auth.instance.OnUserRegisterPanel -= DisplayUserRegisterPanel;
         Auth.instance.OnClosePanel -= ClosePanel;
+        if (titleUI != null) titleUI.OnChangeNameButton -= DisplayUserRegisterPanel;
     }
     void Start()
     {
@@ -66,8 +70,7 @@ public class LoginUI : MonoBehaviour
         {
             if (success)
             {
-                signUpPanel.SetActive(false);
-                userRegisterPanel.SetActive(true);
+                ClosePanel();
             }
             else
             {
@@ -83,8 +86,7 @@ public class LoginUI : MonoBehaviour
         {
             if (success)
             {
-                loginPanel.SetActive(false);
-                userRegisterPanel.SetActive(true);
+                ClosePanel();
             }
             else
             {
