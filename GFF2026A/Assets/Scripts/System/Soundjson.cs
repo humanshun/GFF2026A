@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using System.Data;
 
 public class Soundjson : MonoBehaviour
 {
@@ -99,5 +100,37 @@ public class Soundjson : MonoBehaviour
         }
 
         SaveData(datas);
+    }
+
+    public Dictionary<string, float> LoadVolumeData()
+    {
+        Dictionary<string, float> result = new();
+
+        if (File.Exists(filePath))
+        {
+            string jsonData = File.ReadAllText(filePath);
+            SoundList loadedList = JsonUtility.FromJson<SoundList>(jsonData);
+
+            foreach (var data in loadedList.datas)
+            {
+                result[data.soundName] = data.soundValue;
+            }
+        }
+        else
+        {
+            result["BGM"] = 1.0f;
+            result["SE"] = 1.0f;
+
+            SoundList soundList = new()
+            {
+                datas = new List<SoundData>
+                {
+                    new SoundData { soundName = "BGM", soundValue = 1.0f },
+                    new SoundData { soundName = "SE", soundValue = 1.0f }
+                }
+            };
+            SaveData(soundList);
+        }
+        return result;
     }
 }
