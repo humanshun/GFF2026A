@@ -45,7 +45,8 @@ public class LoginUI : MonoBehaviour
     }
     void Start()
     {
-        DisplaySignUpPanel();
+        ClosePanel();
+        InitUI();
         registarButton.onClick.AddListener(OnRegisterButton);
         loginButton.onClick.AddListener(OnLoginButton);
         submitButton.onClick.AddListener(OnSubmitUserData);
@@ -62,6 +63,39 @@ public class LoginUI : MonoBehaviour
         if (googleButton) googleButton.interactable = !busy;
         if (twitterButton) twitterButton.interactable = !busy;
         if (loadingOverlay) loadingOverlay.SetActive(busy);
+    }
+
+    void InitUI()
+    {
+        ClosePanel();
+        var auth = Auth.instance;
+        bool loggedIn = auth != null && auth.user != null;
+
+        // ユーザー名（ニックネーム）が登録されているか
+        bool hasUserName = false;
+        if (auth != null && auth.userData != null)
+        {
+            hasUserName = !string.IsNullOrEmpty(auth.userData.username);
+        }
+
+        if (!loggedIn)
+        {
+            //未ログイン　=> サインアップ/ログイン選択を出す
+            DisplayLoginPanel();
+        }
+        else if (!hasUserName)
+        {
+            //ログイン済み、ユーザー名未登録 => ユーザー名登録を出す
+            DisplayUserRegisterPanel();
+        }
+        else
+        {
+            //ログイン済み、ユーザー名登録済み => 何も出さない
+            ClosePanel();
+        }
+
+        if (loginErrorText) loginErrorText.SetActive(false);
+        SetBusy(false);
     }
 
     public void OnRegisterButton()
