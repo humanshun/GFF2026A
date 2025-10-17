@@ -7,13 +7,7 @@ public class CountdownUI : MonoBehaviour
     [SerializeField] private float currentTime = 120f;
 
     // テキストの参照
-    private TextMeshProUGUI timeText;
-
-    void Start()
-    {
-        // TMPUGUIコンポーネントの取得
-        timeText = GetComponent<TextMeshProUGUI>();
-    }
+    [SerializeField] private TextMeshProUGUI timeText;
 
     void Update()
     {
@@ -31,6 +25,6 @@ public class CountdownUI : MonoBehaviour
         int totalSeconds = Mathf.FloorToInt(currentTime);
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;
-        timeText.text = $"Time: {minutes:D2}:{seconds:D2}";
+        timeText.text = $"{minutes:D2}:{seconds:D2}";
     }
 }
