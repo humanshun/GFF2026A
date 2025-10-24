@@ -286,6 +286,101 @@ public class Auth : MonoBehaviour
         });
     }
 
+    public void GuestLogin(Action<bool> callback)
+    {
+        if (auth == null)
+        {
+            Debug.LogError("Firebase Auth 未初期化");
+            callback?.Invoke(false);
+            return;
+        }
+
+        auth.SignInAnonymouslyAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsFaulted || task.IsCanceled)
+            {
+                Debug.LogWarning($"ゲストログイン失敗");
+                callback?.Invoke(false);
+                return;
+            }
+
+            user = task.Result.User;
+            Debug.Log($"ゲストログイン成功: {user.UserId}, isAnonymous={user.IsAnonymous}");
+
+            //Firestoreにユーザードキュメントがなければ作る(usernameは空のまま)
+            EnsureUserDocExistsForGuest(
+                onSuccess: () =>
+                {
+                    EnterGameOrAskUsername(needName =>
+                    {
+                        if (needName) OnUserRegisterPanel?.Invoke();
+                        else OnClosePanel?.Invoke();
+                    });
+                    callback?.Invoke(true);
+                },
+
+                onFail: () =>
+                {
+                    // Firestore作成に失敗しても「ログイン自体」は成功しているのでUIだけ出す
+                    OnUserRegisterPanel?.Invoke();
+                    callback?.Invoke(true);
+                });
+        });
+    }
+    
+    private void EnsureUserDocExistsForGuest(Action onSuccess, Action onFail)
+    {
+        if (user == null || firestore == null)
+        {
+            Debug.LogWarning("EnsureUserDocExistsForGuest: 未初期化");
+            onFail?.Invoke();
+            return;
+        }
+
+        var docRef = firestore.Collection("userInfo").Document(user.UserId);
+        docRef.GetSnapshotAsync().ContinueWithOnMainThread(getTask =>
+        {
+            if (getTask.IsFaulted || getTask.IsCanceled)
+            {
+                Debug.LogWarning("ユーザードキュメントの取得に失敗");
+                onFail?.Invoke();
+                return;
+            }
+
+            var snap = getTask.Result;
+            if (snap.Exists)
+            {
+                // 既存あり → timestampだけ更新（任意）
+                int now = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                var updates = new Dictionary<string, object> { { "timestamp", now } };
+                docRef.SetAsync(updates, SetOptions.MergeAll).ContinueWithOnMainThread(_ => onSuccess?.Invoke());
+                return;
+            }
+
+            // 既存なし → 空のusernameで新規作成
+            int nowUnix = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+            var newData = new UserData
+            {
+                username = "",     // ← まだ未登録
+                bestScore = 0,
+                timestamp = nowUnix
+            };
+
+            docRef.SetAsync(newData).ContinueWithOnMainThread(setTask =>
+            {
+                if (setTask.IsFaulted || setTask.IsCanceled)
+                {
+                    Debug.LogWarning("ユーザードキュメントの作成に失敗");
+                    onFail?.Invoke();
+                    return;
+                }
+
+                userData = newData; // ローカルにも反映（任意）
+                onSuccess?.Invoke();
+            });
+        });
+    }
+
     private void LoadUserInfoThenEnterGame()
     {
         if (user == null || firestore == null)
