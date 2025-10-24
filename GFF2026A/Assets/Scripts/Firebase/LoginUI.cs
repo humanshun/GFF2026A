@@ -20,6 +20,7 @@ public class LoginUI : MonoBehaviour
 
     public Button registarButton;
     public Button loginButton;
+    public Button guestLoginButton;
     public Button submitButton;
     public Button googleButton;
     public Button twitterButton;
@@ -49,6 +50,7 @@ public class LoginUI : MonoBehaviour
         InitUI();
         registarButton.onClick.AddListener(OnRegisterButton);
         loginButton.onClick.AddListener(OnLoginButton);
+        guestLoginButton.onClick.AddListener(OnGuestLoginButton);
         submitButton.onClick.AddListener(OnSubmitUserData);
 
         if (googleButton) googleButton.onClick.AddListener(async () => await OnGoogleButtonAsync());
@@ -117,6 +119,21 @@ public class LoginUI : MonoBehaviour
     public void OnLoginButton()
     {
         Auth.instance.LoginFirebase(emailLoginInput.text, passwordLoginInput.text, success =>
+        {
+            if (success)
+            {
+                ClosePanel();
+            }
+            else
+            {
+                loginErrorText.SetActive(true);
+            }
+        });
+    }
+
+    public void OnGuestLoginButton()
+    {
+        Auth.instance.GuestLogin(success =>
         {
             if (success)
             {
