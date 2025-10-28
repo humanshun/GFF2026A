@@ -126,7 +126,7 @@ public class LoginUI : MonoBehaviour
             }
             else
             {
-                loginErrorText.SetActive(true);
+                if (loginErrorText) loginErrorText.SetActive(true);
             }
         });
     }
@@ -141,7 +141,7 @@ public class LoginUI : MonoBehaviour
             }
             else
             {
-                loginErrorText.SetActive(true);
+                if (loginErrorText) loginErrorText.SetActive(true);
             }
         });
     }
@@ -160,7 +160,7 @@ public class LoginUI : MonoBehaviour
         Auth.instance.EnterGameOrAskUsername(needName =>
         {
             SetBusy(false);
-            if (needName) UserRegisterPanel.SetActive(true);
+            if (needName) userRegisterPanel.SetActive(true);
         });
 #else
         SetBusy(false);

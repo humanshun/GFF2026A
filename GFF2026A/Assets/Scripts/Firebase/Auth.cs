@@ -11,6 +11,7 @@ using UnityEngine.SceneManagement;
 public class Auth : MonoBehaviour
 {
     public static Auth instance;
+    public const string DefaultUsername = "No Name";
     private FirebaseAuth auth;
     private FirebaseFirestore firestore;
     public FirebaseUser user { get; private set; }
@@ -92,6 +93,11 @@ public class Auth : MonoBehaviour
             if (task.IsCompleted)
             {
                 user = task.Result.User;
+                EnterGameOrAskUsername(needName =>
+                {
+                    if (needName) OnUserRegisterPanel?.Invoke();
+                    else OnClosePanel?.Invoke();
+                });
                 callback(true);
             }
             else
@@ -104,11 +110,9 @@ public class Auth : MonoBehaviour
 
     public void UserInfoRegister(string username, Action<bool> callback)
     {
-        if (string.IsNullOrEmpty(username))
+        if (string.IsNullOrWhiteSpace(username))
         {
-            Debug.Log("名前が入力されていません");
-            callback?.Invoke(false);
-            return;
+            username = DefaultUsername;
         }
         if (user == null || firestore == null)
         {
@@ -173,7 +177,7 @@ public class Auth : MonoBehaviour
                 // 新規ユーザー → 初期化して作成
                 var newData = new UserData
                 {
-                    username = username,
+                    username = DefaultUsername,
                     bestScore = 0,
                     timestamp = nowUnix
                 };
@@ -361,7 +365,7 @@ public class Auth : MonoBehaviour
             int nowUnix = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
             var newData = new UserData
             {
-                username = "",     // ← まだ未登録
+                username = DefaultUsername,     // ← まだ未登録
                 bestScore = 0,
                 timestamp = nowUnix
             };
@@ -383,11 +387,7 @@ public class Auth : MonoBehaviour
 
     private void LoadUserInfoThenEnterGame()
     {
-        if (user == null || firestore == null)
-        {
-            OnClosePanel?.Invoke();
-            return;
-        }
+        if (user == null || firestore == null) { OnClosePanel?.Invoke(); return; }
 
         var docRef = firestore.Collection("userInfo").Document(user.UserId);
         docRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
@@ -397,15 +397,25 @@ public class Auth : MonoBehaviour
                 var snap = task.Result;
                 if (userData == null) userData = new UserData();
 
+                string name = null;
                 if (snap.ContainsField("username"))
-                    userData.username = snap.GetValue<string>("username");
+                    name = snap.GetValue<string>("username");
+
+                // ここが変更点：空なら NoName を補完書き込み
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    name = DefaultUsername;
+                    int now = (int)(DateTime.UtcNow - new DateTime(1970,1,1)).TotalSeconds;
+                    var updates = new Dictionary<string, object> { { "username", name }, { "timestamp", now } };
+                    docRef.SetAsync(updates, SetOptions.MergeAll);
+                }
+                userData.username = name;
 
                 if (snap.ContainsField("bestScore"))
                 {
                     try { userData.bestScore = snap.GetValue<int>("bestScore"); }
                     catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
                 }
-
                 if (snap.ContainsField("timestamp"))
                 {
                     try { userData.timestamp = snap.GetValue<int>("timestamp"); }
@@ -417,7 +427,15 @@ public class Auth : MonoBehaviour
             }
             else
             {
-                OnUserRegisterPanel?.Invoke();
+                // 初回でドキュメントも無い場合は、NoNameで作ってしまってから閉じる
+                int nowUnix = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                var newData = new UserData { username = DefaultUsername, bestScore = 0, timestamp = nowUnix };
+                docRef.SetAsync(newData).ContinueWithOnMainThread(_ =>
+                {
+                    userData = newData;
+                    OnUserDataUpdated?.Invoke();
+                    OnClosePanel?.Invoke();
+                });
             }
         });
     }
@@ -479,50 +497,71 @@ public class Auth : MonoBehaviour
 
     public void EnterGameOrAskUsername(Action<bool> onNeedUserName)
     {
-        // 認証/DBがまだならユーザー名入力へ
         if (user == null || firestore == null) { onNeedUserName?.Invoke(true); return; }
 
         var docRef = firestore.Collection("userInfo").Document(user.UserId);
         docRef.GetSnapshotAsync().ContinueWithOnMainThread(t =>
         {
             bool need = true;
-
             if (t.IsCompleted && !t.IsFaulted && !t.IsCanceled && t.Result.Exists)
             {
                 var snap = t.Result;
-
-                // username の有無をチェック
                 string name = null;
                 if (snap.ContainsField("username"))
                 {
-                    try { name = snap.GetValue<string>("username"); }
-                    catch { name = null; }
+                    try { name = snap.GetValue<string>("username"); } catch { name = null; }
                 }
-                need = string.IsNullOrEmpty(name);
 
-                // ついでにローカルキャッシュ更新（任意）
-                if (!need)
+                // ここが変更点：空や未設定なら即 NoName を書き込んで続行
+                if (string.IsNullOrWhiteSpace(name))
                 {
-                    if (userData == null) userData = new UserData();
-                    userData.username = name;
+                    int now = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                    var updates = new Dictionary<string, object>
+                    {
+                        { "username", DefaultUsername },
+                        { "timestamp", now }
+                    };
+                    docRef.SetAsync(updates, SetOptions.MergeAll).ContinueWithOnMainThread(_ =>
+                    {
+                        if (userData == null) userData = new UserData();
+                        userData.username = DefaultUsername;
 
-                    if (snap.ContainsField("bestScore"))
-                    {
-                        try { userData.bestScore = snap.GetValue<int>("bestScore"); }
-                        catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
-                    }
-                    if (snap.ContainsField("timestamp"))
-                    {
-                        try { userData.timestamp = snap.GetValue<int>("timestamp"); }
-                        catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
-                    }
+                        if (snap.ContainsField("bestScore"))
+                        {
+                            try { userData.bestScore = snap.GetValue<int>("bestScore"); }
+                            catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
+                        }
+                        if (snap.ContainsField("timestamp"))
+                        {
+                            try { userData.timestamp = snap.GetValue<int>("timestamp"); }
+                            catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
+                        }
+
+                        // 名前入力不要として、そのままゲームへ
+                        LoadUserInfoThenEnterGame();
+                        onNeedUserName?.Invoke(false);
+                    });
+                    return; // ここで終了（以降の分岐は走らせない）
+                }
+
+                // 既に名前あり
+                need = false;
+                if (userData == null) userData = new UserData();
+                userData.username = name;
+                if (snap.ContainsField("bestScore"))
+                {
+                    try { userData.bestScore = snap.GetValue<int>("bestScore"); }
+                    catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
+                }
+                if (snap.ContainsField("timestamp"))
+                {
+                    try { userData.timestamp = snap.GetValue<int>("timestamp"); }
+                    catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
                 }
             }
 
-            if (need)
-                onNeedUserName?.Invoke(true);     // ユーザー名未登録 → 入力パネルを出す
-            else
-                LoadUserInfoThenEnterGame();       // 既に登録あり → そのままゲームへ
+            if (need) onNeedUserName?.Invoke(true);
+            else      LoadUserInfoThenEnterGame();
         });
     }
 
