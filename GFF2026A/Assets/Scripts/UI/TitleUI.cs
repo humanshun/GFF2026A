@@ -8,7 +8,6 @@ public class TitleUI : MonoBehaviour
 {
     [SerializeField] private Button startButton;
     [SerializeField] private Button changeNameButton;
-    [SerializeField] private Button logoutButton;
     [SerializeField] private TextMeshProUGUI userNameText;
     public event Action OnChangeNameButton;
 
@@ -27,10 +26,6 @@ public class TitleUI : MonoBehaviour
     {
         startButton.onClick.AddListener(SwitchScene);
         changeNameButton.onClick.AddListener(() => OnChangeNameButton?.Invoke());
-        if (logoutButton) logoutButton.onClick.AddListener(() =>
-        {
-            Auth.instance?.Logout(goToTitleScene: true, titleSceneName: "Title");
-        });
 
         UpdateUserName();
     }

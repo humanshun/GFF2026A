@@ -93,6 +93,11 @@ public class Auth : MonoBehaviour
             if (task.IsCompleted)
             {
                 user = task.Result.User;
+
+                user.SendEmailVerificationAsync();
+
+                Debug.Log("確認メールを送信しました。メールのリンクを開いてください。");
+                
                 EnterGameOrAskUsername(needName =>
                 {
                     if (needName) OnUserRegisterPanel?.Invoke();
@@ -616,5 +621,128 @@ public class Auth : MonoBehaviour
                 Debug.LogWarning($"シーン遷移失敗: {e.Message}");
             }
         }
+    }
+    /// <summary>
+    /// 現在ログインしているユーザーに確認メール(verify email)を送る
+    /// </summary>
+    public void SendVerificationMail(System.Action<bool> callback = null)
+    {
+        if (user == null)
+        {
+            Debug.LogWarning("SendVerificationMail: 未ログインです");
+            callback?.Invoke(false);
+            return;
+        }
+
+        user.SendEmailVerificationAsync().ContinueWithOnMainThread(task =>
+        {
+            if (!task.IsFaulted && !task.IsCanceled)
+            {
+                Debug.Log("確認メール送信OK");
+                callback?.Invoke(true);
+            }
+            else
+            {
+                Debug.LogWarning("確認メール送信NG");
+                if (task.Exception != null) Debug.LogWarning(task.Exception);
+                callback?.Invoke(false);
+            }
+        });
+    }
+
+    /// <summary>
+    /// パスワード再設定メールを送る
+    /// ログインしてなくてもOK。入力されたメールアドレス宛に送る
+    /// </summary>
+    public void SendPasswordResetMail(string email, System.Action<bool> callback = null)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            Debug.LogWarning("SendPasswordResetMail: emailが空です");
+            callback?.Invoke(false);
+            return;
+        }
+
+        if (auth == null)
+        {
+            Debug.LogWarning("SendPasswordResetMail: auth未初期化");
+            callback?.Invoke(false);
+            return;
+        }
+
+        auth.SendPasswordResetEmailAsync(email).ContinueWithOnMainThread(task =>
+        {
+            if (!task.IsFaulted && !task.IsCanceled)
+            {
+                Debug.Log("パスワード再設定メール送信OK");
+                callback?.Invoke(true);
+            }
+            else
+            {
+                Debug.LogWarning("パスワード再設定メール送信NG");
+                if (task.Exception != null) Debug.LogWarning(task.Exception);
+                callback?.Invoke(false);
+            }
+        });
+    }
+
+    /// <summary>
+    /// ログイン中ユーザーのメールアドレスを変更する
+    /// newEmail に変更できたら true を返す
+    /// 失敗例: 要再認証(REQUIRES_RECENT_LOGIN)など
+    /// </summary>
+    public void ChangeEmail(string newEmail, System.Action<bool, string> callback = null)
+    {
+        if (user == null)
+        {
+            Debug.LogWarning("ChangeEmail: 未ログインです");
+            callback?.Invoke(false, "NOT_LOGGED_IN");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(newEmail))
+        {
+            Debug.LogWarning("ChangeEmail: newEmailが空です");
+            callback?.Invoke(false, "EMPTY_EMAIL");
+            return;
+        }
+
+        // （推奨）直前再認証が必要になることがあるので、失敗時は再認証を促す
+        // 例: Email/Password の場合は ReauthenticateEmailPasswordAsync を別途用意
+
+        // ★ココがポイント：確認メールを新しいアドレスに送る（これが成功しても、まだ変更は確定していません）
+        user.SendEmailVerificationBeforeUpdatingEmailAsync(newEmail)
+            .ContinueWithOnMainThread(task =>
+            {
+                if (!task.IsFaulted && !task.IsCanceled)
+                {
+                    Debug.Log("確認リンクを新しいメールに送信しました。リンクを開くと変更が確定します。");
+
+                    // ユーザーがメールのリンクを踏んだ後、
+                    // アプリに戻ってきたタイミングや「更新」ボタンで明示的に最新化
+                    user.ReloadAsync().ContinueWithOnMainThread(_ =>
+                    {
+                        // ここで user.Email が newEmail に変わっていれば完了
+                        bool done = string.Equals(user.Email, newEmail, StringComparison.OrdinalIgnoreCase);
+                        callback?.Invoke(done, done ? null : "WAITING_VERIFICATION");
+                    });
+                }
+                else
+                {
+                    string reason = "UNKNOWN";
+                    if (task.Exception != null)
+                    {
+                        // 典型: RECENT_LOGIN_REQUIRED（直近ログインが古い）
+                        var baseEx = task.Exception.GetBaseException();
+                        if (baseEx is FirebaseException fe &&
+                            (AuthError)fe.ErrorCode == AuthError.RequiresRecentLogin)
+                        {
+                            reason = "RECENT_LOGIN_REQUIRED";
+                        }
+                        Debug.LogWarning(task.Exception);
+                    }
+                    Debug.LogWarning("メールアドレス変更（確認メール送信）NG");
+                    callback?.Invoke(false, reason);
+                }
+            });
     }
 }

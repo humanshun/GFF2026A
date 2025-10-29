@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PopupButton : MonoBehaviour
+public class OpenPopupButton : MonoBehaviour
 {
     // 開きたいポップアップのPrefab
     [SerializeField] private GameObject popupPrefab;
