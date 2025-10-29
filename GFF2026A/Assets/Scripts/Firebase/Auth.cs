@@ -11,6 +11,7 @@ using UnityEngine.SceneManagement;
 public class Auth : MonoBehaviour
 {
     public static Auth instance;
+    public const string DefaultUsername = "No Name";
     private FirebaseAuth auth;
     private FirebaseFirestore firestore;
     public FirebaseUser user { get; private set; }
@@ -92,6 +93,16 @@ public class Auth : MonoBehaviour
             if (task.IsCompleted)
             {
                 user = task.Result.User;
+
+                user.SendEmailVerificationAsync();
+
+                Debug.Log("確認メールを送信しました。メールのリンクを開いてください。");
+                
+                EnterGameOrAskUsername(needName =>
+                {
+                    if (needName) OnUserRegisterPanel?.Invoke();
+                    else OnClosePanel?.Invoke();
+                });
                 callback(true);
             }
             else
@@ -104,11 +115,9 @@ public class Auth : MonoBehaviour
 
     public void UserInfoRegister(string username, Action<bool> callback)
     {
-        if (string.IsNullOrEmpty(username))
+        if (string.IsNullOrWhiteSpace(username))
         {
-            Debug.Log("名前が入力されていません");
-            callback?.Invoke(false);
-            return;
+            username = DefaultUsername;
         }
         if (user == null || firestore == null)
         {
@@ -173,7 +182,7 @@ public class Auth : MonoBehaviour
                 // 新規ユーザー → 初期化して作成
                 var newData = new UserData
                 {
-                    username = username,
+                    username = DefaultUsername,
                     bestScore = 0,
                     timestamp = nowUnix
                 };
@@ -361,7 +370,7 @@ public class Auth : MonoBehaviour
             int nowUnix = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
             var newData = new UserData
             {
-                username = "",     // ← まだ未登録
+                username = DefaultUsername,     // ← まだ未登録
                 bestScore = 0,
                 timestamp = nowUnix
             };
@@ -383,11 +392,7 @@ public class Auth : MonoBehaviour
 
     private void LoadUserInfoThenEnterGame()
     {
-        if (user == null || firestore == null)
-        {
-            OnClosePanel?.Invoke();
-            return;
-        }
+        if (user == null || firestore == null) { OnClosePanel?.Invoke(); return; }
 
         var docRef = firestore.Collection("userInfo").Document(user.UserId);
         docRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
@@ -397,15 +402,25 @@ public class Auth : MonoBehaviour
                 var snap = task.Result;
                 if (userData == null) userData = new UserData();
 
+                string name = null;
                 if (snap.ContainsField("username"))
-                    userData.username = snap.GetValue<string>("username");
+                    name = snap.GetValue<string>("username");
+
+                // ここが変更点：空なら NoName を補完書き込み
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    name = DefaultUsername;
+                    int now = (int)(DateTime.UtcNow - new DateTime(1970,1,1)).TotalSeconds;
+                    var updates = new Dictionary<string, object> { { "username", name }, { "timestamp", now } };
+                    docRef.SetAsync(updates, SetOptions.MergeAll);
+                }
+                userData.username = name;
 
                 if (snap.ContainsField("bestScore"))
                 {
                     try { userData.bestScore = snap.GetValue<int>("bestScore"); }
                     catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
                 }
-
                 if (snap.ContainsField("timestamp"))
                 {
                     try { userData.timestamp = snap.GetValue<int>("timestamp"); }
@@ -417,7 +432,15 @@ public class Auth : MonoBehaviour
             }
             else
             {
-                OnUserRegisterPanel?.Invoke();
+                // 初回でドキュメントも無い場合は、NoNameで作ってしまってから閉じる
+                int nowUnix = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                var newData = new UserData { username = DefaultUsername, bestScore = 0, timestamp = nowUnix };
+                docRef.SetAsync(newData).ContinueWithOnMainThread(_ =>
+                {
+                    userData = newData;
+                    OnUserDataUpdated?.Invoke();
+                    OnClosePanel?.Invoke();
+                });
             }
         });
     }
@@ -479,50 +502,71 @@ public class Auth : MonoBehaviour
 
     public void EnterGameOrAskUsername(Action<bool> onNeedUserName)
     {
-        // 認証/DBがまだならユーザー名入力へ
         if (user == null || firestore == null) { onNeedUserName?.Invoke(true); return; }
 
         var docRef = firestore.Collection("userInfo").Document(user.UserId);
         docRef.GetSnapshotAsync().ContinueWithOnMainThread(t =>
         {
             bool need = true;
-
             if (t.IsCompleted && !t.IsFaulted && !t.IsCanceled && t.Result.Exists)
             {
                 var snap = t.Result;
-
-                // username の有無をチェック
                 string name = null;
                 if (snap.ContainsField("username"))
                 {
-                    try { name = snap.GetValue<string>("username"); }
-                    catch { name = null; }
+                    try { name = snap.GetValue<string>("username"); } catch { name = null; }
                 }
-                need = string.IsNullOrEmpty(name);
 
-                // ついでにローカルキャッシュ更新（任意）
-                if (!need)
+                // ここが変更点：空や未設定なら即 NoName を書き込んで続行
+                if (string.IsNullOrWhiteSpace(name))
                 {
-                    if (userData == null) userData = new UserData();
-                    userData.username = name;
+                    int now = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                    var updates = new Dictionary<string, object>
+                    {
+                        { "username", DefaultUsername },
+                        { "timestamp", now }
+                    };
+                    docRef.SetAsync(updates, SetOptions.MergeAll).ContinueWithOnMainThread(_ =>
+                    {
+                        if (userData == null) userData = new UserData();
+                        userData.username = DefaultUsername;
 
-                    if (snap.ContainsField("bestScore"))
-                    {
-                        try { userData.bestScore = snap.GetValue<int>("bestScore"); }
-                        catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
-                    }
-                    if (snap.ContainsField("timestamp"))
-                    {
-                        try { userData.timestamp = snap.GetValue<int>("timestamp"); }
-                        catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
-                    }
+                        if (snap.ContainsField("bestScore"))
+                        {
+                            try { userData.bestScore = snap.GetValue<int>("bestScore"); }
+                            catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
+                        }
+                        if (snap.ContainsField("timestamp"))
+                        {
+                            try { userData.timestamp = snap.GetValue<int>("timestamp"); }
+                            catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
+                        }
+
+                        // 名前入力不要として、そのままゲームへ
+                        LoadUserInfoThenEnterGame();
+                        onNeedUserName?.Invoke(false);
+                    });
+                    return; // ここで終了（以降の分岐は走らせない）
+                }
+
+                // 既に名前あり
+                need = false;
+                if (userData == null) userData = new UserData();
+                userData.username = name;
+                if (snap.ContainsField("bestScore"))
+                {
+                    try { userData.bestScore = snap.GetValue<int>("bestScore"); }
+                    catch { userData.bestScore = (int)snap.GetValue<long>("bestScore"); }
+                }
+                if (snap.ContainsField("timestamp"))
+                {
+                    try { userData.timestamp = snap.GetValue<int>("timestamp"); }
+                    catch { userData.timestamp = (int)snap.GetValue<long>("timestamp"); }
                 }
             }
 
-            if (need)
-                onNeedUserName?.Invoke(true);     // ユーザー名未登録 → 入力パネルを出す
-            else
-                LoadUserInfoThenEnterGame();       // 既に登録あり → そのままゲームへ
+            if (need) onNeedUserName?.Invoke(true);
+            else      LoadUserInfoThenEnterGame();
         });
     }
 
@@ -577,5 +621,128 @@ public class Auth : MonoBehaviour
                 Debug.LogWarning($"シーン遷移失敗: {e.Message}");
             }
         }
+    }
+    /// <summary>
+    /// 現在ログインしているユーザーに確認メール(verify email)を送る
+    /// </summary>
+    public void SendVerificationMail(System.Action<bool> callback = null)
+    {
+        if (user == null)
+        {
+            Debug.LogWarning("SendVerificationMail: 未ログインです");
+            callback?.Invoke(false);
+            return;
+        }
+
+        user.SendEmailVerificationAsync().ContinueWithOnMainThread(task =>
+        {
+            if (!task.IsFaulted && !task.IsCanceled)
+            {
+                Debug.Log("確認メール送信OK");
+                callback?.Invoke(true);
+            }
+            else
+            {
+                Debug.LogWarning("確認メール送信NG");
+                if (task.Exception != null) Debug.LogWarning(task.Exception);
+                callback?.Invoke(false);
+            }
+        });
+    }
+
+    /// <summary>
+    /// パスワード再設定メールを送る
+    /// ログインしてなくてもOK。入力されたメールアドレス宛に送る
+    /// </summary>
+    public void SendPasswordResetMail(string email, System.Action<bool> callback = null)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            Debug.LogWarning("SendPasswordResetMail: emailが空です");
+            callback?.Invoke(false);
+            return;
+        }
+
+        if (auth == null)
+        {
+            Debug.LogWarning("SendPasswordResetMail: auth未初期化");
+            callback?.Invoke(false);
+            return;
+        }
+
+        auth.SendPasswordResetEmailAsync(email).ContinueWithOnMainThread(task =>
+        {
+            if (!task.IsFaulted && !task.IsCanceled)
+            {
+                Debug.Log("パスワード再設定メール送信OK");
+                callback?.Invoke(true);
+            }
+            else
+            {
+                Debug.LogWarning("パスワード再設定メール送信NG");
+                if (task.Exception != null) Debug.LogWarning(task.Exception);
+                callback?.Invoke(false);
+            }
+        });
+    }
+
+    /// <summary>
+    /// ログイン中ユーザーのメールアドレスを変更する
+    /// newEmail に変更できたら true を返す
+    /// 失敗例: 要再認証(REQUIRES_RECENT_LOGIN)など
+    /// </summary>
+    public void ChangeEmail(string newEmail, System.Action<bool, string> callback = null)
+    {
+        if (user == null)
+        {
+            Debug.LogWarning("ChangeEmail: 未ログインです");
+            callback?.Invoke(false, "NOT_LOGGED_IN");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(newEmail))
+        {
+            Debug.LogWarning("ChangeEmail: newEmailが空です");
+            callback?.Invoke(false, "EMPTY_EMAIL");
+            return;
+        }
+
+        // （推奨）直前再認証が必要になることがあるので、失敗時は再認証を促す
+        // 例: Email/Password の場合は ReauthenticateEmailPasswordAsync を別途用意
+
+        // ★ココがポイント：確認メールを新しいアドレスに送る（これが成功しても、まだ変更は確定していません）
+        user.SendEmailVerificationBeforeUpdatingEmailAsync(newEmail)
+            .ContinueWithOnMainThread(task =>
+            {
+                if (!task.IsFaulted && !task.IsCanceled)
+                {
+                    Debug.Log("確認リンクを新しいメールに送信しました。リンクを開くと変更が確定します。");
+
+                    // ユーザーがメールのリンクを踏んだ後、
+                    // アプリに戻ってきたタイミングや「更新」ボタンで明示的に最新化
+                    user.ReloadAsync().ContinueWithOnMainThread(_ =>
+                    {
+                        // ここで user.Email が newEmail に変わっていれば完了
+                        bool done = string.Equals(user.Email, newEmail, StringComparison.OrdinalIgnoreCase);
+                        callback?.Invoke(done, done ? null : "WAITING_VERIFICATION");
+                    });
+                }
+                else
+                {
+                    string reason = "UNKNOWN";
+                    if (task.Exception != null)
+                    {
+                        // 典型: RECENT_LOGIN_REQUIRED（直近ログインが古い）
+                        var baseEx = task.Exception.GetBaseException();
+                        if (baseEx is FirebaseException fe &&
+                            (AuthError)fe.ErrorCode == AuthError.RequiresRecentLogin)
+                        {
+                            reason = "RECENT_LOGIN_REQUIRED";
+                        }
+                        Debug.LogWarning(task.Exception);
+                    }
+                    Debug.LogWarning("メールアドレス変更（確認メール送信）NG");
+                    callback?.Invoke(false, reason);
+                }
+            });
     }
 }
